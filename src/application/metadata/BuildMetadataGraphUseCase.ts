@@ -7,7 +7,7 @@ import {
     MetadataGraph,
     graphNodeKey,
 } from "$/domain/metadata/MetadataGraph";
-import { MetadataItem } from "$/domain/metadata/MetadataItem";
+import { MetadataItem, MetadataList } from "$/domain/metadata/MetadataItem";
 import { ResourceType } from "$/domain/metadata/ResourceType";
 import { MetadataRepository } from "$/domain/repositories/MetadataRepository";
 
@@ -176,6 +176,11 @@ export class BuildMetadataGraphUseCase {
                 })
             );
 
+            const categoryCombosList = await $(this.listCategoryCombosByCategories(categoriesList.items));
+            const dataElementsList = await $(
+                this.listDataElementsByCategoryCombos(categoryCombosList.items)
+            );
+
             const { getNodes, edges, addNode, addEdge } = graphBuilder();
             const centerKey = addNode("categoryOptions", option);
 
@@ -185,8 +190,15 @@ export class BuildMetadataGraphUseCase {
                 return key;
             });
 
+            const dataElementKeys = dataElementsList.items.map(item => {
+                const key = addNode("dataElements", item);
+                addEdge(key, centerKey, "dataElements");
+                return key;
+            });
+
             const groups = buildGroups([
                 { id: "categories", title: "Categories", nodeKeys: categoryKeys, direction: "parent" },
+                { id: "data-elements", title: "Data elements", nodeKeys: dataElementKeys, direction: "parent" },
             ]);
 
             return { center: centerKey, nodes: getNodes(), edges, groups };
@@ -203,6 +215,10 @@ export class BuildMetadataGraphUseCase {
                 )
             )) as CategoryOptionCombo;
 
+            const dataElementsList = coc.categoryCombo
+                ? await $(this.listDataElementsByCategoryCombos([coc.categoryCombo]))
+                : { items: [] as MetadataItem[] };
+
             const { getNodes, edges, addNode, addEdge } = graphBuilder();
             const centerKey = addNode("categoryOptionCombos", coc);
 
@@ -217,12 +233,59 @@ export class BuildMetadataGraphUseCase {
                 return key;
             });
 
+            const dataElementKeys = dataElementsList.items.map(item => {
+                const key = addNode("dataElements", item);
+                addEdge(key, centerKey, "dataElements");
+                return key;
+            });
+
             const groups = buildGroups([
                 { id: "category-combo", title: "Category combo", nodeKeys: comboKey ? [comboKey] : [], direction: "parent" },
                 { id: "category-options", title: "Category options", nodeKeys: optionKeys, direction: "child" },
+                { id: "data-elements", title: "Data elements", nodeKeys: dataElementKeys, direction: "parent" },
             ]);
 
             return { center: centerKey, nodes: getNodes(), edges, groups };
+        });
+    }
+
+    private listCategoryCombosByCategories(categories: MetadataItem[]): FutureData<MetadataList> {
+        return Future.block(async $ => {
+            const lists = await $(
+                Future.sequential(
+                    categories.map(category =>
+                        this.options.metadataRepository.list({
+                            type: "categoryCombos",
+                            fields: "id,displayName",
+                            filters: [`categories.id:eq:${category.id}`],
+                            paging: false,
+                        })
+                    )
+                )
+            );
+
+            const items = uniqueById(lists.flatMap(list => list.items));
+            return { items };
+        });
+    }
+
+    private listDataElementsByCategoryCombos(categoryCombos: MetadataItem[]): FutureData<MetadataList> {
+        return Future.block(async $ => {
+            const lists = await $(
+                Future.sequential(
+                    categoryCombos.map(combo =>
+                        this.options.metadataRepository.list({
+                            type: "dataElements",
+                            fields: "id,displayName",
+                            filters: [`categoryCombo.id:eq:${combo.id}`],
+                            paging: false,
+                        })
+                    )
+                )
+            );
+
+            const items = uniqueById(lists.flatMap(list => list.items));
+            return { items };
         });
     }
 }
@@ -293,4 +356,12 @@ function addCategories(
 
 function buildGroups(groups: GraphGroup[]) {
     return groups.filter(group => group.nodeKeys.length > 0);
+}
+
+function uniqueById(items: MetadataItem[]): MetadataItem[] {
+    const map = new Map<string, MetadataItem>();
+    items.forEach(item => {
+        map.set(item.id, item);
+    });
+    return Array.from(map.values());
 }
