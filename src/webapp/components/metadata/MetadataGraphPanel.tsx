@@ -31,13 +31,11 @@ export const MetadataGraphPanel: React.FC<MetadataGraphPanelProps> = ({
         page: 1,
         pageSize: defaultCocPageSize,
     });
-    const [menuState, setMenuState] = React.useState<MenuState>({ type: "closed" });
     const requestId = React.useRef(0);
 
     React.useEffect(() => {
         if (!selectedItem) {
             setGraphState({ type: "idle" });
-            setMenuState({ type: "closed" });
             return;
         }
 
@@ -131,27 +129,22 @@ export const MetadataGraphPanel: React.FC<MetadataGraphPanelProps> = ({
                 ? "Load more"
                 : "All loaded";
 
-    const handleNodeClick = (node: GraphNode, event: React.MouseEvent<HTMLDivElement>) => {
-        const panelRect = event.currentTarget.closest(".metadata-graph")?.getBoundingClientRect();
-        const x = event.clientX - (panelRect?.left ?? 0);
-        const y = event.clientY - (panelRect?.top ?? 0);
-        setMenuState({ type: "open", node, x, y });
-    };
-
     const handleOpenApi = (node: GraphNode) => {
         const link = buildApiLink(baseUrl, node.type, node.id);
         window.open(link, "_blank", "noopener,noreferrer");
-        setMenuState({ type: "closed" });
     };
 
     const handleFocus = (node: GraphNode) => {
         onFocusItem({ id: node.id, type: node.type, displayName: node.displayName });
-        setMenuState({ type: "closed" });
     };
 
     return (
         <div className="metadata-graph__panel">
-            <MetadataGraphView graph={mergedGraph} onNodeClick={handleNodeClick} />
+            <MetadataGraphView
+                graph={mergedGraph}
+                onOpenApi={handleOpenApi}
+                onFocus={handleFocus}
+            />
 
             {lazyCombo && (
                 <div className="metadata-graph__lazy">
@@ -169,29 +162,6 @@ export const MetadataGraphPanel: React.FC<MetadataGraphPanelProps> = ({
                         disabled={cocState.type === "loading" || !cocCanLoadMore}
                     >
                         {lazyButtonLabel}
-                    </button>
-                </div>
-            )}
-
-            {menuState.type === "open" && (
-                <div
-                    className="graph-menu"
-                    style={{ left: menuState.x, top: menuState.y }}
-                    onMouseLeave={() => setMenuState({ type: "closed" })}
-                >
-                    <button
-                        type="button"
-                        className="graph-menu__item"
-                        onClick={() => handleOpenApi(menuState.node)}
-                    >
-                        Open API
-                    </button>
-                    <button
-                        type="button"
-                        className="graph-menu__item"
-                        onClick={() => handleFocus(menuState.node)}
-                    >
-                        Focus in graph
                     </button>
                 </div>
             )}
@@ -228,15 +198,6 @@ type CocState =
           pageSize: number;
           error: Error;
           pager?: MetadataList["pager"];
-      };
-
-type MenuState =
-    | { type: "closed" }
-    | {
-          type: "open";
-          node: GraphNode;
-          x: number;
-          y: number;
       };
 
 function mergeCategoryOptionCombos(

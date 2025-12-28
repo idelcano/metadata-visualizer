@@ -1,4 +1,6 @@
 import { ResourceType } from "$/domain/metadata/ResourceType";
+import { sha256 } from "@noble/hashes/sha256";
+import { bytesToHex } from "@noble/hashes/utils";
 
 const DEFAULT_GRID = 5;
 const DEFAULT_SIZE = 40;
@@ -14,11 +16,12 @@ export function identiconSeed(type: ResourceType, uid: string): string {
 }
 
 export async function sha256Hex(input: string): Promise<string> {
-    if (!("crypto" in globalThis) || !globalThis.crypto.subtle) {
-        throw new Error("Web Crypto API not available for SHA-256");
-    }
     const encoder = new TextEncoder();
     const data = encoder.encode(input);
+
+    if (!("crypto" in globalThis) || !globalThis.crypto.subtle) {
+        return bytesToHex(sha256(data));
+    }
     const hashBuffer = await globalThis.crypto.subtle.digest("SHA-256", data);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");

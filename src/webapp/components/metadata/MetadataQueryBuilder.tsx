@@ -7,6 +7,7 @@ export type MetadataQueryState = {
     filters: string;
     page: number;
     pageSize: number;
+    paging: boolean;
 };
 
 type MetadataQueryBuilderProps = {
@@ -73,6 +74,7 @@ export const MetadataQueryBuilder: React.FC<MetadataQueryBuilderProps> = ({
                         type="number"
                         min={1}
                         value={value.page}
+                        disabled={!value.paging}
                         onChange={event =>
                             onChange({ ...value, page: Math.max(1, Number(event.target.value || 1)) })
                         }
@@ -86,6 +88,7 @@ export const MetadataQueryBuilder: React.FC<MetadataQueryBuilderProps> = ({
                         min={1}
                         max={200}
                         value={value.pageSize}
+                        disabled={!value.paging}
                         onChange={event =>
                             onChange({
                                 ...value,
@@ -93,6 +96,17 @@ export const MetadataQueryBuilder: React.FC<MetadataQueryBuilderProps> = ({
                             })
                         }
                     />
+                </label>
+
+                <label className="metadata-query__checkbox">
+                    <input
+                        type="checkbox"
+                        checked={!value.paging}
+                        onChange={event =>
+                            onChange({ ...value, paging: !event.target.checked, page: 1 })
+                        }
+                    />
+                    Fetch all (paging=false)
                 </label>
 
                 <button className="metadata-query__button" type="button" onClick={onRun}>

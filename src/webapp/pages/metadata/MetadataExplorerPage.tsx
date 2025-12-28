@@ -23,6 +23,7 @@ const initialQuery: MetadataQueryState = {
     filters: "",
     page: 1,
     pageSize: 20,
+    paging: true,
 };
 
 export const MetadataExplorerPage: React.FC = () => {
@@ -41,9 +42,9 @@ export const MetadataExplorerPage: React.FC = () => {
                 type: activeQuery.type,
                 fields: normalizedFields,
                 filters,
-                page: activeQuery.page,
-                pageSize: Math.min(200, activeQuery.pageSize),
-                paging: true,
+                page: activeQuery.paging ? activeQuery.page : undefined,
+                pageSize: activeQuery.paging ? Math.min(200, activeQuery.pageSize) : undefined,
+                paging: activeQuery.paging,
             };
 
             const currentRequest = ++requestId.current;
@@ -92,6 +93,7 @@ export const MetadataExplorerPage: React.FC = () => {
     };
 
     const handlePageChange = (nextPage: number) => {
+        if (!queryState.paging) return;
         const nextQuery = { ...queryState, page: nextPage };
         setQueryState(nextQuery);
         runQuery(nextQuery);
@@ -100,8 +102,8 @@ export const MetadataExplorerPage: React.FC = () => {
     const pager = listState.type === "loaded" ? listState.data.pager : undefined;
     const pageCount = pager?.pageCount ?? 1;
     const total = pager?.total;
-    const canPrev = queryState.page > 1;
-    const canNext = queryState.page < pageCount;
+    const canPrev = queryState.paging && queryState.page > 1;
+    const canNext = queryState.paging && queryState.page < pageCount;
 
     return (
         <div className="metadata-explorer">
@@ -119,8 +121,8 @@ export const MetadataExplorerPage: React.FC = () => {
                 )}
                 {listState.type === "loaded" && (
                     <span>
-                        {total !== undefined ? `${total} total` : `${listState.data.items.length} items`} •
-                        page {queryState.page} of {pageCount}
+                        {total !== undefined ? `${total} total` : `${listState.data.items.length} items`}
+                        {queryState.paging ? ` • page ${queryState.page} of ${pageCount}` : ""}
                     </span>
                 )}
             </div>

@@ -2,10 +2,13 @@ import React from "react";
 import { GraphGroup, GraphNode, MetadataGraph } from "$/domain/metadata/MetadataGraph";
 import { resourceTypeLabels } from "$/domain/metadata/ResourceType";
 import { IdenticonAvatar } from "$/webapp/components/metadata/IdenticonAvatar";
+import OpenInNewIcon from "@material-ui/icons/OpenInNew";
+import CenterFocusStrongIcon from "@material-ui/icons/CenterFocusStrong";
 
 type MetadataGraphViewProps = {
     graph: MetadataGraph;
-    onNodeClick?: (node: GraphNode, event: React.MouseEvent<HTMLDivElement>) => void;
+    onOpenApi?: (node: GraphNode) => void;
+    onFocus?: (node: GraphNode) => void;
 };
 
 type Line = {
@@ -16,7 +19,11 @@ type Line = {
     label: string;
 };
 
-export const MetadataGraphView: React.FC<MetadataGraphViewProps> = ({ graph, onNodeClick }) => {
+export const MetadataGraphView: React.FC<MetadataGraphViewProps> = ({
+    graph,
+    onOpenApi,
+    onFocus,
+}) => {
     const containerRef = React.useRef<HTMLDivElement | null>(null);
     const nodeRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
     const [lines, setLines] = React.useState<Line[]>([]);
@@ -104,7 +111,8 @@ export const MetadataGraphView: React.FC<MetadataGraphViewProps> = ({ graph, onN
                             group={group}
                             nodeMap={nodeMap}
                             registerNode={registerNode}
-                            onNodeClick={onNodeClick}
+                            onOpenApi={onOpenApi}
+                            onFocus={onFocus}
                         />
                     ))}
 
@@ -112,13 +120,14 @@ export const MetadataGraphView: React.FC<MetadataGraphViewProps> = ({ graph, onN
                         {centerNode && (
                             <>
                                 <div className="graph-layout__group-title">
-                                    {resourceTypeLabels[centerNode.type]}
+                                    {resourceTypeLabels[centerNode.type]} (1)
                                 </div>
                                 <GraphNodeCard
                                     node={centerNode}
                                     registerNode={registerNode}
                                     isCenter
-                                    onNodeClick={onNodeClick}
+                                    onOpenApi={onOpenApi}
+                                    onFocus={onFocus}
                                 />
                             </>
                         )}
@@ -130,7 +139,8 @@ export const MetadataGraphView: React.FC<MetadataGraphViewProps> = ({ graph, onN
                             group={group}
                             nodeMap={nodeMap}
                             registerNode={registerNode}
-                            onNodeClick={onNodeClick}
+                            onOpenApi={onOpenApi}
+                            onFocus={onFocus}
                         />
                     ))}
                 </div>
@@ -143,8 +153,9 @@ const GraphGroupColumn: React.FC<{
     group: GraphGroup;
     nodeMap: Map<string, GraphNode>;
     registerNode: (key: string) => (element: HTMLDivElement | null) => void;
-    onNodeClick?: (node: GraphNode, event: React.MouseEvent<HTMLDivElement>) => void;
-}> = ({ group, nodeMap, registerNode, onNodeClick }) => {
+    onOpenApi?: (node: GraphNode) => void;
+    onFocus?: (node: GraphNode) => void;
+}> = ({ group, nodeMap, registerNode, onOpenApi, onFocus }) => {
     if (!group.nodeKeys.length) {
         return null;
     }
@@ -152,7 +163,9 @@ const GraphGroupColumn: React.FC<{
     return (
         <div className="graph-layout__column">
             <div className="graph-layout__group">
-                <div className="graph-layout__group-title">{group.title}</div>
+                <div className="graph-layout__group-title">
+                    {group.title} ({group.nodeKeys.length})
+                </div>
                 <div className="graph-layout__group-nodes">
                     {group.nodeKeys.map(key => {
                         const node = nodeMap.get(key);
@@ -162,7 +175,8 @@ const GraphGroupColumn: React.FC<{
                                 key={key}
                                 node={node}
                                 registerNode={registerNode}
-                                onNodeClick={onNodeClick}
+                                onOpenApi={onOpenApi}
+                                onFocus={onFocus}
                             />
                         );
                     })}
@@ -176,25 +190,40 @@ const GraphNodeCard: React.FC<{
     node: GraphNode;
     registerNode: (key: string) => (element: HTMLDivElement | null) => void;
     isCenter?: boolean;
-    onNodeClick?: (node: GraphNode, event: React.MouseEvent<HTMLDivElement>) => void;
-}> = ({ node, registerNode, isCenter = false, onNodeClick }) => {
+    onOpenApi?: (node: GraphNode) => void;
+    onFocus?: (node: GraphNode) => void;
+}> = ({ node, registerNode, isCenter = false, onOpenApi, onFocus }) => {
     return (
         <div
             ref={registerNode(node.key)}
             className={isCenter ? "graph-node graph-node--center" : "graph-node"}
-            role={onNodeClick ? "button" : undefined}
-            tabIndex={onNodeClick ? 0 : undefined}
-            onClick={event => onNodeClick?.(node, event)}
-            onKeyDown={event => {
-                if (event.key === "Enter" || event.key === " ") {
-                    onNodeClick?.(node, event as unknown as React.MouseEvent<HTMLDivElement>);
-                }
-            }}
         >
             <IdenticonAvatar type={node.type} uid={node.id} size={28} className="graph-node__avatar" />
             <div className="graph-node__label">
                 <div className="graph-node__title">{node.displayName}</div>
-                <div className="graph-node__subtitle">{node.id}</div>
+                <div className="graph-node__subtitle">
+                    <span className="graph-node__uid" title={node.id}>
+                        {node.id}
+                    </span>
+                    <span className="graph-node__actions">
+                        <button
+                            type="button"
+                            className="graph-node__action"
+                            title="Open API"
+                            onClick={() => onOpenApi?.(node)}
+                        >
+                            <OpenInNewIcon fontSize="small" />
+                        </button>
+                        <button
+                            type="button"
+                            className="graph-node__action"
+                            title="Focus in graph"
+                            onClick={() => onFocus?.(node)}
+                        >
+                            <CenterFocusStrongIcon fontSize="small" />
+                        </button>
+                    </span>
+                </div>
             </div>
         </div>
     );
