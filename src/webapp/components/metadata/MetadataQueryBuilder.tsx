@@ -1,5 +1,5 @@
 import React from "react";
-import { resourceTypeLabels, resourceTypes, ResourceType } from "$/domain/metadata/ResourceType";
+import { resourceTypeLabels, selectableResourceTypes, ResourceType } from "$/domain/metadata/ResourceType";
 
 export type MetadataQueryState = {
     type: ResourceType;
@@ -32,7 +32,7 @@ export const MetadataQueryBuilder: React.FC<MetadataQueryBuilderProps> = ({
                         value={value.type}
                         onChange={event => onTypeChange(event.target.value as ResourceType)}
                     >
-                        {resourceTypes.map(type => (
+                        {selectableResourceTypes.map(type => (
                             <option key={type} value={type}>
                                 {resourceTypeLabels[type]}
                             </option>

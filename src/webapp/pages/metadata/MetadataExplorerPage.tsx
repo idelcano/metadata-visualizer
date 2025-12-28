@@ -10,6 +10,7 @@ import "./MetadataExplorerPage.css";
 
 const defaultFieldsByType: Record<ResourceType, string> = {
     dataElements: "id,displayName,categoryCombo[id,displayName]",
+    dataSets: "id,displayName,categoryCombo[id,displayName]",
     categories: "id,displayName,categoryOptions[id,displayName]",
     categoryCombos: "id,displayName,categories[id,displayName]",
     categoryOptions: "id,displayName",

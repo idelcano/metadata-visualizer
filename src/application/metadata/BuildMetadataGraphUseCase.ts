@@ -29,6 +29,10 @@ export class BuildMetadataGraphUseCase {
                     return await $(this.buildCategoryOptionGraph(input.id));
                 case "categoryOptionCombos":
                     return await $(this.buildCategoryOptionComboGraph(input.id));
+                case "dataSets":
+                    return await $(this.buildDataSetGraph(input.id));
+                default:
+                    throw new Error(`Unsupported metadata type: ${input.type}`);
             }
         });
     }
@@ -43,6 +47,13 @@ export class BuildMetadataGraphUseCase {
                 )
             )) as DataElement;
 
+            const dataSetsByElement = await $(
+                this.listDataSetsByDataElementIds([dataElement])
+            );
+            const { plain: dataSetsPlain, overrides: dataSetsOverride } = splitDataSetsByOverride(
+                dataSetsByElement.items
+            );
+
             const { getNodes, edges, addNode, addEdge } = graphBuilder();
             const centerKey = addNode("dataElements", dataElement);
 
@@ -54,10 +65,24 @@ export class BuildMetadataGraphUseCase {
 
             const { categoryKeys, optionKeys } = addCategories(combo, comboKey, addNode, addEdge);
 
+            const dataSetKeys = dataSetsPlain.map(item => {
+                const key = addNode("dataSets", item);
+                addEdge(key, centerKey, "dataSets");
+                return key;
+            });
+
+            const dataSetOverrideKeys = dataSetsOverride.map(item => {
+                const key = addNode("dataSets", item);
+                addEdge(key, centerKey, "dataSetsOverride");
+                return key;
+            });
+
             const groups = buildGroups([
                 { id: "category-combo", title: "Category combo", nodeKeys: comboKey ? [comboKey] : [], direction: "parent" },
                 { id: "categories", title: "Categories", nodeKeys: categoryKeys, direction: "child" },
                 { id: "category-options", title: "Category options", nodeKeys: optionKeys, direction: "child" },
+                { id: "data-sets", title: "Data sets", nodeKeys: dataSetKeys, direction: "parent" },
+                { id: "data-sets-override", title: "Data sets (override)", nodeKeys: dataSetOverrideKeys, direction: "parent" },
             ]);
 
             return {
@@ -91,6 +116,8 @@ export class BuildMetadataGraphUseCase {
                 })
             );
 
+            const dataSetsByCombo = await $(this.listDataSetsByCategoryComboIds([combo]));
+
             const { getNodes, edges, addNode, addEdge } = graphBuilder();
             const centerKey = addNode("categoryCombos", combo);
 
@@ -102,10 +129,17 @@ export class BuildMetadataGraphUseCase {
                 return key;
             });
 
+            const dataSetKeys = dataSetsByCombo.items.map(item => {
+                const key = addNode("dataSets", item);
+                addEdge(key, centerKey, "dataSets");
+                return key;
+            });
+
             const groups = buildGroups([
                 { id: "categories", title: "Categories", nodeKeys: categoryKeys, direction: "child" },
                 { id: "category-options", title: "Category options", nodeKeys: optionKeys, direction: "child" },
                 { id: "data-elements", title: "Data elements", nodeKeys: dataElementKeys, direction: "parent" },
+                { id: "data-sets", title: "Data sets", nodeKeys: dataSetKeys, direction: "parent" },
             ]);
 
             return {
@@ -137,6 +171,8 @@ export class BuildMetadataGraphUseCase {
                 })
             );
 
+            const dataSetsByCombo = await $(this.listDataSetsByCategoryComboIds(combosList.items));
+
             const { getNodes, edges, addNode, addEdge } = graphBuilder();
             const centerKey = addNode("categories", category);
 
@@ -152,9 +188,16 @@ export class BuildMetadataGraphUseCase {
                 return key;
             });
 
+            const dataSetKeys = dataSetsByCombo.items.map(item => {
+                const key = addNode("dataSets", item);
+                addEdge(key, centerKey, "dataSets");
+                return key;
+            });
+
             const groups = buildGroups([
                 { id: "category-combos", title: "Category combos", nodeKeys: comboKeys, direction: "parent" },
                 { id: "category-options", title: "Category options", nodeKeys: optionKeys, direction: "child" },
+                { id: "data-sets", title: "Data sets", nodeKeys: dataSetKeys, direction: "parent" },
             ]);
 
             return { center: centerKey, nodes: getNodes(), edges, groups };
@@ -180,6 +223,13 @@ export class BuildMetadataGraphUseCase {
             const dataElementsList = await $(
                 this.listDataElementsByCategoryCombos(categoryCombosList.items)
             );
+            const dataSetsByCombo = await $(this.listDataSetsByCategoryComboIds(categoryCombosList.items));
+            const dataSetsByElements = await $(
+                this.listDataSetsByDataElementIds(dataElementsList.items)
+            );
+            const { plain: dataSetsPlain, overrides: dataSetsOverride } = splitDataSetsByOverride(
+                dataSetsByElements.items
+            );
 
             const { getNodes, edges, addNode, addEdge } = graphBuilder();
             const centerKey = addNode("categoryOptions", option);
@@ -196,9 +246,27 @@ export class BuildMetadataGraphUseCase {
                 return key;
             });
 
+            const dataSetKeys = uniqueById(
+                [...dataSetsPlain, ...dataSetsByCombo.items].filter(
+                    item => !dataSetsOverride.some(override => override.id === item.id)
+                )
+            ).map(item => {
+                const key = addNode("dataSets", item);
+                addEdge(key, centerKey, "dataSets");
+                return key;
+            });
+
+            const dataSetOverrideKeys = dataSetsOverride.map(item => {
+                const key = addNode("dataSets", item);
+                addEdge(key, centerKey, "dataSetsOverride");
+                return key;
+            });
+
             const groups = buildGroups([
                 { id: "categories", title: "Categories", nodeKeys: categoryKeys, direction: "parent" },
                 { id: "data-elements", title: "Data elements", nodeKeys: dataElementKeys, direction: "parent" },
+                { id: "data-sets", title: "Data sets", nodeKeys: dataSetKeys, direction: "parent" },
+                { id: "data-sets-override", title: "Data sets (override)", nodeKeys: dataSetOverrideKeys, direction: "parent" },
             ]);
 
             return { center: centerKey, nodes: getNodes(), edges, groups };
@@ -218,6 +286,15 @@ export class BuildMetadataGraphUseCase {
             const dataElementsList = coc.categoryCombo
                 ? await $(this.listDataElementsByCategoryCombos([coc.categoryCombo]))
                 : { items: [] as MetadataItem[] };
+            const dataSetsByCombo = coc.categoryCombo
+                ? await $(this.listDataSetsByCategoryComboIds([coc.categoryCombo]))
+                : { items: [] as MetadataItem[] };
+            const dataSetsByElements = await $(
+                this.listDataSetsByDataElementIds(dataElementsList.items)
+            );
+            const { plain: dataSetsPlain, overrides: dataSetsOverride } = splitDataSetsByOverride(
+                dataSetsByElements.items
+            );
 
             const { getNodes, edges, addNode, addEdge } = graphBuilder();
             const centerKey = addNode("categoryOptionCombos", coc);
@@ -239,13 +316,101 @@ export class BuildMetadataGraphUseCase {
                 return key;
             });
 
+            const dataSetKeys = uniqueById(
+                [...dataSetsPlain, ...dataSetsByCombo.items].filter(
+                    item => !dataSetsOverride.some(override => override.id === item.id)
+                )
+            ).map(item => {
+                const key = addNode("dataSets", item);
+                addEdge(key, centerKey, "dataSets");
+                return key;
+            });
+
+            const dataSetOverrideKeys = dataSetsOverride.map(item => {
+                const key = addNode("dataSets", item);
+                addEdge(key, centerKey, "dataSetsOverride");
+                return key;
+            });
+
             const groups = buildGroups([
                 { id: "category-combo", title: "Category combo", nodeKeys: comboKey ? [comboKey] : [], direction: "parent" },
                 { id: "category-options", title: "Category options", nodeKeys: optionKeys, direction: "child" },
                 { id: "data-elements", title: "Data elements", nodeKeys: dataElementKeys, direction: "parent" },
+                { id: "data-sets", title: "Data sets", nodeKeys: dataSetKeys, direction: "parent" },
+                { id: "data-sets-override", title: "Data sets (override)", nodeKeys: dataSetOverrideKeys, direction: "parent" },
             ]);
 
             return { center: centerKey, nodes: getNodes(), edges, groups };
+        });
+    }
+
+    private buildDataSetGraph(id: string): FutureData<MetadataGraph> {
+        return Future.block(async $ => {
+            const dataSet = (await $(
+                this.options.metadataRepository.get(
+                    "dataSets",
+                    id,
+                    "id,displayName,categoryCombo[id,displayName,categories[id,displayName,categoryOptions[id,displayName]]],dataSetElements[dataElement[id,displayName,categoryCombo[id,displayName]],categoryCombo[id,displayName]]"
+                )
+            )) as DataSet;
+
+            const { getNodes, edges, addNode, addEdge } = graphBuilder();
+            const centerKey = addNode("dataSets", dataSet);
+
+            const combo = dataSet.categoryCombo;
+            const comboKey = combo ? addNode("categoryCombos", combo) : null;
+            if (comboKey) {
+                addEdge(comboKey, centerKey, "categoryCombo");
+            }
+
+            const { categoryKeys, optionKeys } = addCategories(combo, comboKey, addNode, addEdge);
+
+            const dataElements = uniqueById(
+                (dataSet.dataSetElements ?? [])
+                    .map(element => element.dataElement)
+                    .filter((item): item is MetadataItem => Boolean(item))
+            );
+
+            const dataElementKeys = dataElements.map(item => {
+                const key = addNode("dataElements", item);
+                addEdge(centerKey, key, "dataElements");
+                return key;
+            });
+
+            const overrideCombos = uniqueById(
+                (dataSet.dataSetElements ?? [])
+                    .filter(element => {
+                        const overrideId = element.categoryCombo?.id;
+                        const defaultId = element.dataElement?.categoryCombo?.id;
+                        return Boolean(overrideId && overrideId !== defaultId);
+                    })
+                    .map(element => element.categoryCombo)
+                    .filter((item): item is MetadataItem => Boolean(item))
+            );
+
+            const overrideComboKeys = overrideCombos.map(item => {
+                const key = addNode("categoryCombos", item);
+                addEdge(key, centerKey, "categoryComboOverride");
+                return key;
+            });
+
+            const groups = buildGroups([
+                { id: "category-combo", title: "Category combo", nodeKeys: comboKey ? [comboKey] : [], direction: "parent" },
+                { id: "category-combos-override", title: "Category combos (override)", nodeKeys: overrideComboKeys, direction: "parent" },
+                { id: "categories", title: "Categories", nodeKeys: categoryKeys, direction: "child" },
+                { id: "category-options", title: "Category options", nodeKeys: optionKeys, direction: "child" },
+                { id: "data-elements", title: "Data elements", nodeKeys: dataElementKeys, direction: "child" },
+            ]);
+
+            return {
+                center: centerKey,
+                nodes: getNodes(),
+                edges,
+                groups,
+                lazy: combo
+                    ? { categoryOptionCombos: { categoryComboId: combo.id } }
+                    : undefined,
+            };
         });
     }
 
@@ -288,6 +453,46 @@ export class BuildMetadataGraphUseCase {
             return { items };
         });
     }
+
+    private listDataSetsByCategoryComboIds(categoryCombos: MetadataItem[]): FutureData<MetadataList> {
+        return Future.block(async $ => {
+            const lists = await $(
+                Future.sequential(
+                    categoryCombos.map(combo =>
+                        this.options.metadataRepository.list({
+                            type: "dataSets",
+                            fields: "id,displayName,categoryCombo[id,displayName],dataSetElements[dataElement[id,displayName,categoryCombo[id,displayName]],categoryCombo[id,displayName]]",
+                            filters: [`categoryCombo.id:eq:${combo.id}`],
+                            paging: false,
+                        })
+                    )
+                )
+            );
+
+            const items = uniqueById(lists.flatMap(list => list.items));
+            return { items };
+        });
+    }
+
+    private listDataSetsByDataElementIds(dataElements: MetadataItem[]): FutureData<MetadataList> {
+        return Future.block(async $ => {
+            const lists = await $(
+                Future.sequential(
+                    dataElements.map(element =>
+                        this.options.metadataRepository.list({
+                            type: "dataSets",
+                            fields: "id,displayName,categoryCombo[id,displayName],dataSetElements[dataElement[id,displayName,categoryCombo[id,displayName]],categoryCombo[id,displayName]]",
+                            filters: [`dataSetElements.dataElement.id:eq:${element.id}`],
+                            paging: false,
+                        })
+                    )
+                )
+            );
+
+            const items = uniqueById(lists.flatMap(list => list.items));
+            return { items };
+        });
+    }
 }
 
 type CategoryOption = MetadataItem & { displayName?: string; name?: string };
@@ -297,6 +502,14 @@ type DataElement = MetadataItem & { categoryCombo?: CategoryCombo };
 type CategoryOptionCombo = MetadataItem & {
     categoryCombo?: CategoryCombo;
     categoryOptions?: CategoryOption[];
+};
+type DataSetElement = {
+    dataElement?: DataElement;
+    categoryCombo?: CategoryCombo;
+};
+type DataSet = MetadataItem & {
+    categoryCombo?: CategoryCombo;
+    dataSetElements?: DataSetElement[];
 };
 
 function graphBuilder() {
@@ -364,4 +577,27 @@ function uniqueById(items: MetadataItem[]): MetadataItem[] {
         map.set(item.id, item);
     });
     return Array.from(map.values());
+}
+
+function splitDataSetsByOverride(dataSets: MetadataItem[]) {
+    const plain: DataSet[] = [];
+    const overrides: DataSet[] = [];
+
+    dataSets.forEach(item => {
+        const dataSet = item as DataSet;
+        const elements = dataSet.dataSetElements ?? [];
+        const hasOverride = elements.some(element => {
+            const overrideCombo = element.categoryCombo?.id;
+            const defaultCombo = element.dataElement?.categoryCombo?.id;
+            return Boolean(overrideCombo && defaultCombo && overrideCombo !== defaultCombo);
+        });
+
+        if (hasOverride) {
+            overrides.push(dataSet);
+        } else {
+            plain.push(dataSet);
+        }
+    });
+
+    return { plain, overrides };
 }
