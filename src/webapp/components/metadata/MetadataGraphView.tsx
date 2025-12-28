@@ -1,5 +1,6 @@
 import React from "react";
 import { GraphGroup, GraphNode, MetadataGraph } from "$/domain/metadata/MetadataGraph";
+import { resourceTypeLabels } from "$/domain/metadata/ResourceType";
 import { IdenticonAvatar } from "$/webapp/components/metadata/IdenticonAvatar";
 
 type MetadataGraphViewProps = {
@@ -19,6 +20,10 @@ export const MetadataGraphView: React.FC<MetadataGraphViewProps> = ({ graph, onN
     const containerRef = React.useRef<HTMLDivElement | null>(null);
     const nodeRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
     const [lines, setLines] = React.useState<Line[]>([]);
+    const [canvasSize, setCanvasSize] = React.useState<{ width: number; height: number }>({
+        width: 0,
+        height: 0,
+    });
 
     const nodeMap = React.useMemo(() => {
         return new Map(graph.nodes.map(node => [node.key, node]));
@@ -26,6 +31,8 @@ export const MetadataGraphView: React.FC<MetadataGraphViewProps> = ({ graph, onN
 
     const parentGroups = graph.groups.filter(group => group.direction === "parent");
     const childGroups = graph.groups.filter(group => group.direction === "child");
+    const leftGroups = parentGroups.length > 0 ? parentGroups : childGroups;
+    const rightGroups = parentGroups.length > 0 ? childGroups : [];
 
     const registerNode = React.useCallback((key: string) => {
         return (element: HTMLDivElement | null) => {
@@ -37,6 +44,10 @@ export const MetadataGraphView: React.FC<MetadataGraphViewProps> = ({ graph, onN
         const measure = () => {
             if (!containerRef.current) return;
             const containerRect = containerRef.current.getBoundingClientRect();
+            setCanvasSize({
+                width: containerRef.current.scrollWidth,
+                height: containerRef.current.scrollHeight,
+            });
 
             const nextLines = graph.edges
                 .map(edge => {
@@ -67,8 +78,12 @@ export const MetadataGraphView: React.FC<MetadataGraphViewProps> = ({ graph, onN
     const centerNode = nodeMap.get(graph.center);
 
     return (
-        <div className="graph-layout" ref={containerRef}>
-            <svg className="graph-layout__edges">
+        <div className="graph-layout">
+            <div className="graph-layout__canvas" ref={containerRef}>
+                <svg
+                    className="graph-layout__edges"
+                    style={{ width: canvasSize.width, height: canvasSize.height }}
+                >
                 {lines.map((line, index) => (
                     <line
                         key={`${line.label}-${index}`}
@@ -80,72 +95,79 @@ export const MetadataGraphView: React.FC<MetadataGraphViewProps> = ({ graph, onN
                         strokeWidth={1}
                     />
                 ))}
-            </svg>
+                </svg>
 
-            <div className="graph-layout__columns">
-                <GraphColumn
-                    title="Parents"
-                    groups={parentGroups}
-                    nodeMap={nodeMap}
-                    registerNode={registerNode}
-                    onNodeClick={onNodeClick}
-                />
-
-                <div className="graph-layout__column graph-layout__column--center">
-                    {centerNode && (
-                        <GraphNodeCard
-                            node={centerNode}
+                <div className="graph-layout__columns">
+                    {leftGroups.map(group => (
+                        <GraphGroupColumn
+                            key={group.id}
+                            group={group}
+                            nodeMap={nodeMap}
                             registerNode={registerNode}
-                            isCenter
                             onNodeClick={onNodeClick}
                         />
-                    )}
-                </div>
+                    ))}
 
-                <GraphColumn
-                    title="Children"
-                    groups={childGroups}
-                    nodeMap={nodeMap}
-                    registerNode={registerNode}
-                    onNodeClick={onNodeClick}
-                />
+                    <div className="graph-layout__column graph-layout__column--center">
+                        {centerNode && (
+                            <>
+                                <div className="graph-layout__group-title">
+                                    {resourceTypeLabels[centerNode.type]}
+                                </div>
+                                <GraphNodeCard
+                                    node={centerNode}
+                                    registerNode={registerNode}
+                                    isCenter
+                                    onNodeClick={onNodeClick}
+                                />
+                            </>
+                        )}
+                    </div>
+
+                    {rightGroups.map(group => (
+                        <GraphGroupColumn
+                            key={group.id}
+                            group={group}
+                            nodeMap={nodeMap}
+                            registerNode={registerNode}
+                            onNodeClick={onNodeClick}
+                        />
+                    ))}
+                </div>
             </div>
         </div>
     );
 };
 
-const GraphColumn: React.FC<{
-    title: string;
-    groups: GraphGroup[];
+const GraphGroupColumn: React.FC<{
+    group: GraphGroup;
     nodeMap: Map<string, GraphNode>;
     registerNode: (key: string) => (element: HTMLDivElement | null) => void;
     onNodeClick?: (node: GraphNode, event: React.MouseEvent<HTMLDivElement>) => void;
-}> = ({ title, groups, nodeMap, registerNode, onNodeClick }) => {
-    if (!groups.length) {
-        return <div className="graph-layout__column graph-layout__column--empty">No {title.toLowerCase()}</div>;
+}> = ({ group, nodeMap, registerNode, onNodeClick }) => {
+    if (!group.nodeKeys.length) {
+        return null;
     }
 
     return (
         <div className="graph-layout__column">
-            {groups.map(group => (
-                <div key={group.id} className="graph-layout__group">
-                    <div className="graph-layout__group-title">{group.title}</div>
-                    <div className="graph-layout__group-nodes">
-                        {group.nodeKeys.map(key => {
-                            const node = nodeMap.get(key);
-                            if (!node) return null;
-                            return (
-                                <GraphNodeCard
-                                    key={key}
-                                    node={node}
-                                    registerNode={registerNode}
-                                    onNodeClick={onNodeClick}
-                                />
-                            );
-                        })}
-                    </div>
+            <div className="graph-layout__group">
+                <div className="graph-layout__group-title">{group.title}</div>
+                <div className="graph-layout__group-nodes">
+                    {group.nodeKeys.map(key => {
+                        const node = nodeMap.get(key);
+                        if (!node) return null;
+                        return (
+                            <GraphNodeCard
+                                key={key}
+                                node={node}
+                                registerNode={registerNode}
+                                onNodeClick={onNodeClick}
+                            />
+                        );
+                    })}
                 </div>
-            ))}
+            </div>
         </div>
     );
 };

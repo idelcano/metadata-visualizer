@@ -105,7 +105,7 @@ export class BuildMetadataGraphUseCase {
             const groups = buildGroups([
                 { id: "categories", title: "Categories", nodeKeys: categoryKeys, direction: "child" },
                 { id: "category-options", title: "Category options", nodeKeys: optionKeys, direction: "child" },
-                { id: "data-elements", title: "Data elements", nodeKeys: dataElementKeys, direction: "child" },
+                { id: "data-elements", title: "Data elements", nodeKeys: dataElementKeys, direction: "parent" },
             ]);
 
             return {

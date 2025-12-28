@@ -201,22 +201,30 @@
 .graph-layout {
     position: relative;
     min-height: 280px;
+    overflow-x: auto;
+}
+
+.graph-layout__canvas {
+    position: relative;
+    min-height: 280px;
+    width: max-content;
 }
 
 .graph-layout__edges {
     position: absolute;
     inset: 0;
-    width: 100%;
-    height: 100%;
     pointer-events: none;
 }
 
 .graph-layout__columns {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 220px) minmax(0, 1fr);
-    gap: 12px;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(240px, 320px);
+    gap: 16px;
     position: relative;
     z-index: 1;
+    padding-right: 16px;
+    width: max-content;
 }
 
 .graph-layout__column {
@@ -227,17 +235,8 @@
 
 .graph-layout__column--center {
     align-items: center;
-    justify-content: center;
 }
 
-.graph-layout__column--empty {
-    font-size: 12px;
-    color: #8a8a8a;
-    padding: 12px;
-    border: 1px dashed #d0d0d0;
-    border-radius: 6px;
-    background: #fafafa;
-}
 
 .graph-layout__group {
     display: flex;
@@ -256,7 +255,7 @@
 .graph-layout__group-nodes {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
 }
 
 .graph-node {
@@ -331,10 +330,6 @@
 }
 
 @media (max-width: 900px) {
-    .graph-layout__columns {
-        grid-template-columns: 1fr;
-    }
-
     .graph-layout__edges {
         display: none;
     }

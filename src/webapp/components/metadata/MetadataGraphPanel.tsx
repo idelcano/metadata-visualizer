@@ -61,26 +61,9 @@ export const MetadataGraphPanel: React.FC<MetadataGraphPanelProps> = ({
         setCocState({ type: "idle", items: [], page: 1, pageSize: defaultCocPageSize });
     }, [selectedItem?.id, selectedItem?.type]);
 
-    if (!selectedItem) {
-        return <div className="metadata-graph__placeholder">Select a row to view relationships.</div>;
-    }
+    const lazyCombo = graphState.type === "loaded" ? graphState.data.lazy?.categoryOptionCombos : undefined;
 
-    if (graphState.type === "loading") {
-        return <div className="metadata-graph__placeholder">Loading graph...</div>;
-    }
-
-    if (graphState.type === "error") {
-        return <div className="metadata-graph__placeholder">{graphState.error.message}</div>;
-    }
-
-    if (graphState.type !== "loaded") {
-        return null;
-    }
-
-    const mergedGraph = mergeCategoryOptionCombos(graphState.data, cocState.items);
-    const lazyCombo = graphState.data.lazy?.categoryOptionCombos;
-
-    const handleLoadMore = () => {
+    const handleLoadMore = React.useCallback(() => {
         if (!lazyCombo || cocState.type === "loading") return;
         const basePage = cocState.items.length ? cocState.page : 0;
         const pageToLoad = basePage + 1;
@@ -106,7 +89,32 @@ export const MetadataGraphPanel: React.FC<MetadataGraphPanelProps> = ({
             .catch(error => {
                 setCocState(prev => ({ ...prev, type: "error", error }));
             });
-    };
+    }, [compositionRoot, cocState.items.length, cocState.page, cocState.pageSize, cocState.type, lazyCombo]);
+
+    React.useEffect(() => {
+        if (graphState.type !== "loaded") return;
+        if (!graphState.data.lazy?.categoryOptionCombos) return;
+        if (cocState.type !== "idle") return;
+        handleLoadMore();
+    }, [graphState, cocState.type, handleLoadMore]);
+
+    if (!selectedItem) {
+        return <div className="metadata-graph__placeholder">Select a row to view relationships.</div>;
+    }
+
+    if (graphState.type === "loading") {
+        return <div className="metadata-graph__placeholder">Loading graph...</div>;
+    }
+
+    if (graphState.type === "error") {
+        return <div className="metadata-graph__placeholder">{graphState.error.message}</div>;
+    }
+
+    if (graphState.type !== "loaded") {
+        return null;
+    }
+
+    const mergedGraph = mergeCategoryOptionCombos(graphState.data, cocState.items);
 
     const cocPager = cocState.pager;
     const cocTotal = cocPager?.total;
