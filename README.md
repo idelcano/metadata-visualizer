@@ -33,9 +33,10 @@ $ yarn test
 
 ### Clean architecture folder structure
 
--   `src/domain`: Domain layer of the app (entities, use cases, repository definitions)
--   `src/data`: Data of the app (repository implementations)
--   `src/webapp/pages`: Main React components.
+-   `src/domain`: Domain layer (entities, resource types, repository definitions)
+-   `src/application`: Application layer (use cases)
+-   `src/data`: Infrastructure layer (DHIS2 data engine repositories)
+-   `src/webapp/pages`: Main React pages.
 -   `src/webapp/components`: React components.
 -   `src/utils`: Misc utilities.
 -   `i18n/`: Contains literal translations (gettext format)
