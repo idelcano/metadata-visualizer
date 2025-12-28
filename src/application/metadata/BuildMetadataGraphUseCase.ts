@@ -82,14 +82,30 @@ export class BuildMetadataGraphUseCase {
                 )
             )) as CategoryCombo;
 
+            const dataElementsList = await $(
+                this.options.metadataRepository.list({
+                    type: "dataElements",
+                    fields: "id,displayName",
+                    filters: [`categoryCombo.id:eq:${id}`],
+                    paging: false,
+                })
+            );
+
             const { getNodes, edges, addNode, addEdge } = graphBuilder();
             const centerKey = addNode("categoryCombos", combo);
 
             const { categoryKeys, optionKeys } = addCategories(combo, centerKey, addNode, addEdge);
 
+            const dataElementKeys = dataElementsList.items.map(item => {
+                const key = addNode("dataElements", item);
+                addEdge(centerKey, key, "dataElements");
+                return key;
+            });
+
             const groups = buildGroups([
                 { id: "categories", title: "Categories", nodeKeys: categoryKeys, direction: "child" },
                 { id: "category-options", title: "Category options", nodeKeys: optionKeys, direction: "child" },
+                { id: "data-elements", title: "Data elements", nodeKeys: dataElementKeys, direction: "child" },
             ]);
 
             return {

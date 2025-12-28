@@ -4,6 +4,7 @@ import { IdenticonAvatar } from "$/webapp/components/metadata/IdenticonAvatar";
 
 type MetadataGraphViewProps = {
     graph: MetadataGraph;
+    onNodeClick?: (node: GraphNode, event: React.MouseEvent<HTMLDivElement>) => void;
 };
 
 type Line = {
@@ -14,7 +15,7 @@ type Line = {
     label: string;
 };
 
-export const MetadataGraphView: React.FC<MetadataGraphViewProps> = ({ graph }) => {
+export const MetadataGraphView: React.FC<MetadataGraphViewProps> = ({ graph, onNodeClick }) => {
     const containerRef = React.useRef<HTMLDivElement | null>(null);
     const nodeRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
     const [lines, setLines] = React.useState<Line[]>([]);
@@ -87,6 +88,7 @@ export const MetadataGraphView: React.FC<MetadataGraphViewProps> = ({ graph }) =
                     groups={parentGroups}
                     nodeMap={nodeMap}
                     registerNode={registerNode}
+                    onNodeClick={onNodeClick}
                 />
 
                 <div className="graph-layout__column graph-layout__column--center">
@@ -95,6 +97,7 @@ export const MetadataGraphView: React.FC<MetadataGraphViewProps> = ({ graph }) =
                             node={centerNode}
                             registerNode={registerNode}
                             isCenter
+                            onNodeClick={onNodeClick}
                         />
                     )}
                 </div>
@@ -104,6 +107,7 @@ export const MetadataGraphView: React.FC<MetadataGraphViewProps> = ({ graph }) =
                     groups={childGroups}
                     nodeMap={nodeMap}
                     registerNode={registerNode}
+                    onNodeClick={onNodeClick}
                 />
             </div>
         </div>
@@ -115,7 +119,8 @@ const GraphColumn: React.FC<{
     groups: GraphGroup[];
     nodeMap: Map<string, GraphNode>;
     registerNode: (key: string) => (element: HTMLDivElement | null) => void;
-}> = ({ title, groups, nodeMap, registerNode }) => {
+    onNodeClick?: (node: GraphNode, event: React.MouseEvent<HTMLDivElement>) => void;
+}> = ({ title, groups, nodeMap, registerNode, onNodeClick }) => {
     if (!groups.length) {
         return <div className="graph-layout__column graph-layout__column--empty">No {title.toLowerCase()}</div>;
     }
@@ -129,7 +134,14 @@ const GraphColumn: React.FC<{
                         {group.nodeKeys.map(key => {
                             const node = nodeMap.get(key);
                             if (!node) return null;
-                            return <GraphNodeCard key={key} node={node} registerNode={registerNode} />;
+                            return (
+                                <GraphNodeCard
+                                    key={key}
+                                    node={node}
+                                    registerNode={registerNode}
+                                    onNodeClick={onNodeClick}
+                                />
+                            );
                         })}
                     </div>
                 </div>
@@ -142,11 +154,20 @@ const GraphNodeCard: React.FC<{
     node: GraphNode;
     registerNode: (key: string) => (element: HTMLDivElement | null) => void;
     isCenter?: boolean;
-}> = ({ node, registerNode, isCenter = false }) => {
+    onNodeClick?: (node: GraphNode, event: React.MouseEvent<HTMLDivElement>) => void;
+}> = ({ node, registerNode, isCenter = false, onNodeClick }) => {
     return (
         <div
             ref={registerNode(node.key)}
             className={isCenter ? "graph-node graph-node--center" : "graph-node"}
+            role={onNodeClick ? "button" : undefined}
+            tabIndex={onNodeClick ? 0 : undefined}
+            onClick={event => onNodeClick?.(node, event)}
+            onKeyDown={event => {
+                if (event.key === "Enter" || event.key === " ") {
+                    onNodeClick?.(node, event as unknown as React.MouseEvent<HTMLDivElement>);
+                }
+            }}
         >
             <IdenticonAvatar type={node.type} uid={node.id} size={28} className="graph-node__avatar" />
             <div className="graph-node__label">

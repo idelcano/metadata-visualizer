@@ -83,6 +83,10 @@ export const MetadataExplorerPage: React.FC = () => {
     const handleRun = () => runQuery(queryState);
 
     const handleSelect = (item: MetadataItem) => {
+        setSelectedItem({ ...item, type: queryState.type });
+    };
+
+    const handleFocusFromGraph = (item: MetadataItem) => {
         setSelectedItem(item);
     };
 
@@ -158,7 +162,7 @@ export const MetadataExplorerPage: React.FC = () => {
                 <div className="metadata-graph">
                     <MetadataGraphPanel
                         selectedItem={selectedItem}
-                        resourceType={queryState.type}
+                        onFocusItem={handleFocusFromGraph}
                     />
                 </div>
             </div>
