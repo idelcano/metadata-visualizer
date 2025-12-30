@@ -10,6 +10,7 @@ import {
 import { MetadataItem, MetadataList } from "$/domain/metadata/MetadataItem";
 import { useAppContext } from "$/webapp/contexts/app-context";
 import { MetadataGraphView } from "$/webapp/components/metadata/MetadataGraphView";
+import { MetadataGraphView3D } from "$/webapp/components/metadata/MetadataGraphView3D";
 
 type MetadataGraphPanelProps = {
     selectedItem: MetadataItem | null;
@@ -31,6 +32,7 @@ export const MetadataGraphPanel: React.FC<MetadataGraphPanelProps> = ({
         page: 1,
         pageSize: defaultCocPageSize,
     });
+    const [graphView, setGraphView] = React.useState<GraphViewMode>("layout2d");
     const requestId = React.useRef(0);
 
     React.useEffect(() => {
@@ -140,11 +142,34 @@ export const MetadataGraphPanel: React.FC<MetadataGraphPanelProps> = ({
 
     return (
         <div className="metadata-graph__panel">
-            <MetadataGraphView
-                graph={mergedGraph}
-                onOpenApi={handleOpenApi}
-                onFocus={handleFocus}
-            />
+            <div className="metadata-graph__toolbar">
+                <label className="metadata-graph__toolbar-label" htmlFor="metadata-graph-view">
+                    Visualizacion
+                </label>
+                <select
+                    id="metadata-graph-view"
+                    className="metadata-graph__select"
+                    value={graphView}
+                    onChange={event => setGraphView(event.target.value as GraphViewMode)}
+                >
+                    <option value="layout2d">Vista 2D (actual)</option>
+                    <option value="force3d">Arbol 3D</option>
+                </select>
+            </div>
+
+            {graphView === "force3d" ? (
+                <MetadataGraphView3D
+                    graph={mergedGraph}
+                    onOpenApi={handleOpenApi}
+                    onFocus={handleFocus}
+                />
+            ) : (
+                <MetadataGraphView
+                    graph={mergedGraph}
+                    onOpenApi={handleOpenApi}
+                    onFocus={handleFocus}
+                />
+            )}
 
             {lazyCombo && (
                 <div className="metadata-graph__lazy">
@@ -199,6 +224,8 @@ type CocState =
           error: Error;
           pager?: MetadataList["pager"];
       };
+
+type GraphViewMode = "layout2d" | "force3d";
 
 function mergeCategoryOptionCombos(
     graph: MetadataGraph,
