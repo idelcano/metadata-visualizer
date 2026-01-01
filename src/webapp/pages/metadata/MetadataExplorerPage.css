@@ -279,7 +279,6 @@
     align-items: center;
 }
 
-
 .graph-layout__group {
     display: flex;
     flex-direction: column;
@@ -398,7 +397,6 @@
     border-radius: 4px;
     border: 1px solid #d3ddec;
 }
-
 
 @media (max-width: 900px) {
     .graph-layout__edges {

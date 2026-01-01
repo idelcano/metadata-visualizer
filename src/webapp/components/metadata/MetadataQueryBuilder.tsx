@@ -1,5 +1,9 @@
 import React from "react";
-import { resourceTypeLabels, selectableResourceTypes, ResourceType } from "$/domain/metadata/ResourceType";
+import {
+    resourceTypeLabels,
+    selectableResourceTypes,
+    ResourceType,
+} from "$/domain/metadata/ResourceType";
 
 export type MetadataQueryState = {
     type: ResourceType;
@@ -76,7 +80,10 @@ export const MetadataQueryBuilder: React.FC<MetadataQueryBuilderProps> = ({
                         value={value.page}
                         disabled={!value.paging}
                         onChange={event =>
-                            onChange({ ...value, page: Math.max(1, Number(event.target.value || 1)) })
+                            onChange({
+                                ...value,
+                                page: Math.max(1, Number(event.target.value || 1)),
+                            })
                         }
                     />
                 </label>
@@ -92,7 +99,10 @@ export const MetadataQueryBuilder: React.FC<MetadataQueryBuilderProps> = ({
                         onChange={event =>
                             onChange({
                                 ...value,
-                                pageSize: Math.min(200, Math.max(1, Number(event.target.value || 1))),
+                                pageSize: Math.min(
+                                    200,
+                                    Math.max(1, Number(event.target.value || 1))
+                                ),
                             })
                         }
                     />

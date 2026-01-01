@@ -3,7 +3,10 @@ import { MetadataItem, MetadataList } from "$/domain/metadata/MetadataItem";
 import { MetadataQuery } from "$/domain/metadata/MetadataQuery";
 import { ResourceType } from "$/domain/metadata/ResourceType";
 import { useAppContext } from "$/webapp/contexts/app-context";
-import { MetadataQueryBuilder, MetadataQueryState } from "$/webapp/components/metadata/MetadataQueryBuilder";
+import {
+    MetadataQueryBuilder,
+    MetadataQueryState,
+} from "$/webapp/components/metadata/MetadataQueryBuilder";
 import { MetadataTable } from "$/webapp/components/metadata/MetadataTable";
 import { MetadataGraphPanel } from "$/webapp/components/metadata/MetadataGraphPanel";
 import "./MetadataExplorerPage.css";
@@ -121,7 +124,9 @@ export const MetadataExplorerPage: React.FC = () => {
                 )}
                 {listState.type === "loaded" && (
                     <span>
-                        {total !== undefined ? `${total} total` : `${listState.data.items.length} items`}
+                        {total !== undefined
+                            ? `${total} total`
+                            : `${listState.data.items.length} items`}
                         {queryState.paging ? ` • page ${queryState.page} of ${pageCount}` : ""}
                     </span>
                 )}

@@ -50,8 +50,7 @@ export const MetadataGraphView3D: React.FC<MetadataGraphView3DProps> = ({
         };
 
         measure();
-        const observer =
-            typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
+        const observer = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
 
         if (observer && containerRef.current) {
             observer.observe(containerRef.current);

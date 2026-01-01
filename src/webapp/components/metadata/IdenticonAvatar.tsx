@@ -9,7 +9,12 @@ type IdenticonAvatarProps = {
     className?: string;
 };
 
-export const IdenticonAvatar: React.FC<IdenticonAvatarProps> = ({ type, uid, size = 40, className }) => {
+export const IdenticonAvatar: React.FC<IdenticonAvatarProps> = ({
+    type,
+    uid,
+    size = 40,
+    className,
+}) => {
     const [svg, setSvg] = React.useState<string>("");
 
     React.useEffect(() => {

@@ -15,8 +15,7 @@ export class UserDhis2Repository implements UserRepository {
                         me: {
                             resource: "me",
                             params: {
-                                fields:
-                                    "id,displayName,userGroups[id,name],userCredentials[username,userRoles[id,name,authorities]]",
+                                fields: "id,displayName,userGroups[id,name],userCredentials[username,userRoles[id,name,authorities]]",
                             },
                         },
                     },

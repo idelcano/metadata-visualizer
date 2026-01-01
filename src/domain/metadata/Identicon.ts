@@ -64,7 +64,9 @@ export function buildIdenticonSvg(
 }
 
 function rect(x: number, y: number, cell: number, fill: string): string {
-    return `<rect x="${x * cell}" y="${y * cell}" width="${cell}" height="${cell}" fill="${fill}" />`;
+    return `<rect x="${x * cell}" y="${
+        y * cell
+    }" width="${cell}" height="${cell}" fill="${fill}" />`;
 }
 
 function hexToBits(hashHex: string): string {

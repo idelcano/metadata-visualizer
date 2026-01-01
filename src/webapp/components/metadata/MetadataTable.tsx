@@ -43,7 +43,11 @@ export const MetadataTable: React.FC<MetadataTableProps> = ({
                     return (
                         <tr
                             key={item.id}
-                            className={isSelected ? "metadata-table__row metadata-table__row--active" : "metadata-table__row"}
+                            className={
+                                isSelected
+                                    ? "metadata-table__row metadata-table__row--active"
+                                    : "metadata-table__row"
+                            }
                             onClick={() => onSelect(item)}
                         >
                             <td className="metadata-table__cell metadata-table__cell--avatar">
@@ -51,7 +55,9 @@ export const MetadataTable: React.FC<MetadataTableProps> = ({
                             </td>
                             {columns.map(column => (
                                 <td key={column} className="metadata-table__cell">
-                                    {column === "displayName" ? displayName : formatValue(item[column])}
+                                    {column === "displayName"
+                                        ? displayName
+                                        : formatValue(item[column])}
                                 </td>
                             ))}
                         </tr>

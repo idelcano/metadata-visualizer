@@ -91,17 +91,17 @@ export const MetadataGraphView: React.FC<MetadataGraphViewProps> = ({
                     className="graph-layout__edges"
                     style={{ width: canvasSize.width, height: canvasSize.height }}
                 >
-                {lines.map((line, index) => (
-                    <line
-                        key={`${line.label}-${index}`}
-                        x1={line.x1}
-                        y1={line.y1}
-                        x2={line.x2}
-                        y2={line.y2}
-                        stroke="#9aa8bf"
-                        strokeWidth={1}
-                    />
-                ))}
+                    {lines.map((line, index) => (
+                        <line
+                            key={`${line.label}-${index}`}
+                            x1={line.x1}
+                            y1={line.y1}
+                            x2={line.x2}
+                            y2={line.y2}
+                            stroke="#9aa8bf"
+                            strokeWidth={1}
+                        />
+                    ))}
                 </svg>
 
                 <div className="graph-layout__columns">
@@ -198,7 +198,12 @@ const GraphNodeCard: React.FC<{
             ref={registerNode(node.key)}
             className={isCenter ? "graph-node graph-node--center" : "graph-node"}
         >
-            <IdenticonAvatar type={node.type} uid={node.id} size={28} className="graph-node__avatar" />
+            <IdenticonAvatar
+                type={node.type}
+                uid={node.id}
+                size={28}
+                className="graph-node__avatar"
+            />
             <div className="graph-node__label">
                 <div className="graph-node__title">{node.displayName}</div>
                 <div className="graph-node__subtitle">

@@ -61,7 +61,8 @@ export const MetadataGraphPanel: React.FC<MetadataGraphPanelProps> = ({
         setCocState({ type: "idle", items: [], page: 1, pageSize: defaultCocPageSize });
     }, [selectedItem?.id, selectedItem?.type]);
 
-    const lazyCombo = graphState.type === "loaded" ? graphState.data.lazy?.categoryOptionCombos : undefined;
+    const lazyCombo =
+        graphState.type === "loaded" ? graphState.data.lazy?.categoryOptionCombos : undefined;
 
     const handleLoadMore = React.useCallback(() => {
         if (!lazyCombo || cocState.type === "loading") return;
@@ -89,7 +90,14 @@ export const MetadataGraphPanel: React.FC<MetadataGraphPanelProps> = ({
             .catch(error => {
                 setCocState(prev => ({ ...prev, type: "error", error }));
             });
-    }, [compositionRoot, cocState.items.length, cocState.page, cocState.pageSize, cocState.type, lazyCombo]);
+    }, [
+        compositionRoot,
+        cocState.items.length,
+        cocState.page,
+        cocState.pageSize,
+        cocState.type,
+        lazyCombo,
+    ]);
 
     React.useEffect(() => {
         if (graphState.type !== "loaded") return;
@@ -99,7 +107,9 @@ export const MetadataGraphPanel: React.FC<MetadataGraphPanelProps> = ({
     }, [graphState, cocState.type, handleLoadMore]);
 
     if (!selectedItem) {
-        return <div className="metadata-graph__placeholder">Select a row to view relationships.</div>;
+        return (
+            <div className="metadata-graph__placeholder">Select a row to view relationships.</div>
+        );
     }
 
     if (graphState.type === "loading") {
@@ -126,10 +136,10 @@ export const MetadataGraphPanel: React.FC<MetadataGraphPanelProps> = ({
         cocState.type === "loading"
             ? "Loading..."
             : cocState.type === "idle"
-              ? "Load combos"
-              : cocCanLoadMore
-                ? "Load more"
-                : "All loaded";
+            ? "Load combos"
+            : cocCanLoadMore
+            ? "Load more"
+            : "All loaded";
 
     const handleOpenApi = (node: GraphNode) => {
         const link = buildApiLink(baseUrl, node.type, node.id);
@@ -174,8 +184,7 @@ export const MetadataGraphPanel: React.FC<MetadataGraphPanelProps> = ({
             {lazyCombo && (
                 <div className="metadata-graph__lazy">
                     <div className="metadata-graph__lazy-header">
-                        Category option combos{" "}
-                        {cocTotal !== undefined ? `(${cocTotal})` : ""}
+                        Category option combos {cocTotal !== undefined ? `(${cocTotal})` : ""}
                     </div>
                     {cocState.type === "error" && (
                         <div className="metadata-graph__lazy-error">{cocState.error?.message}</div>
@@ -227,10 +236,7 @@ type CocState =
 
 type GraphViewMode = "layout2d" | "force3d";
 
-function mergeCategoryOptionCombos(
-    graph: MetadataGraph,
-    combos: MetadataItem[]
-): MetadataGraph {
+function mergeCategoryOptionCombos(graph: MetadataGraph, combos: MetadataItem[]): MetadataGraph {
     if (!combos.length || !graph.lazy?.categoryOptionCombos) {
         return graph;
     }

@@ -12,7 +12,7 @@ if (!existsSync(potPath)) {
 
 const poFiles = findPoFiles(baseDir);
 
-if (poFiles.length === 0) { 
+if (poFiles.length === 0) {
     process.exit(0);
 }
 
