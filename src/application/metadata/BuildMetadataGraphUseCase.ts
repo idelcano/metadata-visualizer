@@ -275,6 +275,14 @@ export class BuildMetadataGraphUseCase {
             const { plain: dataSetsPlain, overrides: dataSetsOverride } = splitDataSetsByOverride(
                 dataSetsByElements.items
             );
+            const categoryOptionCombosList = await $(
+                this.options.metadataRepository.list({
+                    type: "categoryOptionCombos",
+                    fields: "id,displayName",
+                    filters: [`categoryOptions.id:eq:${id}`],
+                    paging: false,
+                })
+            );
 
             const { getNodes, edges, addNode, addEdge } = graphBuilder();
             const centerKey = addNode("categoryOptions", option);
@@ -307,6 +315,12 @@ export class BuildMetadataGraphUseCase {
                 return key;
             });
 
+            const optionComboKeys = categoryOptionCombosList.items.map(item => {
+                const key = addNode("categoryOptionCombos", item);
+                addEdge(centerKey, key, "categoryOptionCombos");
+                return key;
+            });
+
             const groups = buildGroups([
                 {
                     id: "categories",
@@ -326,6 +340,12 @@ export class BuildMetadataGraphUseCase {
                     title: "Data sets (override)",
                     nodeKeys: dataSetOverrideKeys,
                     direction: "parent",
+                },
+                {
+                    id: "category-option-combos",
+                    title: "Category option combos",
+                    nodeKeys: optionComboKeys,
+                    direction: "child",
                 },
             ]);
 

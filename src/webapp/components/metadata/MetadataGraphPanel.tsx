@@ -164,12 +164,20 @@ export const MetadataGraphPanel: React.FC<MetadataGraphPanelProps> = ({
                 >
                     <option value="layout2d">Vista 2D (actual)</option>
                     <option value="force3d">Arbol 3D</option>
+                    <option value="timeline3d">Timeline 3D</option>
                 </select>
             </div>
 
             {graphView === "force3d" ? (
                 <MetadataGraphView3D
                     graph={mergedGraph}
+                    onOpenApi={handleOpenApi}
+                    onFocus={handleFocus}
+                />
+            ) : graphView === "timeline3d" ? (
+                <MetadataGraphView3D
+                    graph={mergedGraph}
+                    layoutMode="timeline"
                     onOpenApi={handleOpenApi}
                     onFocus={handleFocus}
                 />
@@ -234,7 +242,7 @@ type CocState =
           pager?: MetadataList["pager"];
       };
 
-type GraphViewMode = "layout2d" | "force3d";
+type GraphViewMode = "layout2d" | "force3d" | "timeline3d";
 
 function mergeCategoryOptionCombos(graph: MetadataGraph, combos: MetadataItem[]): MetadataGraph {
     if (!combos.length || !graph.lazy?.categoryOptionCombos) {
