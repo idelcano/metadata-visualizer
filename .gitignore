@@ -24,6 +24,7 @@ manifest.webapp
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+bom.json
 
 src/locales/
 src/react-app.d.ts

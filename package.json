@@ -10,7 +10,7 @@
         "url": "git+https://github.com/eyeseetea/dhis2-app-skeleton.git"
     },
     "dependencies": {
-        "$": "link:./src",
+        "@local/src": "link:./src",
         "@dhis2/app-runtime": "^3",
         "@dhis2/d2-i18n": "^1",
         "@dhis2/d2-i18n-extract": "^1",
@@ -118,5 +118,6 @@
                 "href": "*"
             }
         }
-    }
+    },
+    "packageManager": "yarn@4.12.0"
 }
