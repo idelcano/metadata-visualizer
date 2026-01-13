@@ -15,7 +15,7 @@ $ yarn build
 
 ## Development
 
-Copy `.env` to `.env.local` and configure DHIS2 instance to use. Then start the development server:
+Copy `.env.example` to `.env.local` and configure the DHIS2 instance to use. Then start the development server:
 
 ```
 $ yarn start
