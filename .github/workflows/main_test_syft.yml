@@ -1,4 +1,4 @@
-name: Runner Smoke + SBOM
+name: Runner Smoke + Syft SBOM 2
 
 on:
   workflow_dispatch:
@@ -19,13 +19,14 @@ jobs:
         run: |
           mkdir -p "$HOME/bin"
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh \
-          | sh -s -- -b "$HOME/bin"
+            | sh -s -- -b "$HOME/bin"
           echo "$HOME/bin" >> "$GITHUB_PATH"
-          syft version
+
+      - name: Syft version
+        run: syft version
 
       - name: Generate SBOM (CycloneDX)
-        run: |
-          syft . -o cyclonedx-json=sbom.json
+        run: syft . -o cyclonedx-json=sbom.json
 
       - name: Upload SBOM
         uses: actions/upload-artifact@v4
