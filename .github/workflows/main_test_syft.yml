@@ -15,10 +15,12 @@ jobs:
       - name: Podman smoke
         run: podman run --rm alpine echo OK
 
-      - name: Install syft
+      - name: Install syft (user space)
         run: |
+          mkdir -p "$HOME/bin"
           curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh \
-            | sh -s -- -b /usr/local/bin
+          | sh -s -- -b "$HOME/bin"
+          echo "$HOME/bin" >> "$GITHUB_PATH"
           syft version
 
       - name: Generate SBOM (CycloneDX)
