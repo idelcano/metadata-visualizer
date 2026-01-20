@@ -1,0 +1,32 @@
+name: Runner Smoke + SBOM
+
+on:
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: bom
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Who am I
+        run: whoami
+
+      - name: Podman smoke
+        run: podman run --rm alpine echo OK
+
+      - name: Install syft
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh \
+            | sh -s -- -b /usr/local/bin
+          syft version
+
+      - name: Generate SBOM (CycloneDX)
+        run: |
+          syft . -o cyclonedx-json=sbom.json
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.json
