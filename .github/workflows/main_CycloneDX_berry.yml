@@ -22,7 +22,15 @@ jobs:
           podman run --rm \
             -v "$GITHUB_WORKSPACE:/work" -w /work \
             node:${NODE_VERSION}-bullseye \
-            bash -lc "corepack enable && yarn set version berry && yarn install && yarn dlx -q @cyclonedx/yarn-plugin-cyclonedx --output-file bom_berry.json --output-format JSON"
+            bash -lc '
+              corepack enable
+              yarn set version berry
+              if [ ! -f src/package.json ]; then
+                printf "{\n  \"name\": \"local-src\",\n  \"version\": \"0.0.0\"\n}\n" > src/package.json
+                CLEAN_SRC_PKG=1
+              fi
+              yarn install
+              yarn dlx -q @cyclonedx/yarn-plugin-cyclonedx --output-file bom.json --output-format JSON
 
       - name: Upload BOM
         uses: actions/upload-artifact@v4
