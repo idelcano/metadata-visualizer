@@ -15,9 +15,11 @@ jobs:
       - name: Yarn install + SBOM (container)
         run: |
           podman run --rm \
-          -v "$GITHUB_WORKSPACE:/work" -w /work \
-          node:${NODE_VERSION}-bullseye \
-          bash -lc "corepack enable && yarn install && syft . -o cyclonedx-json=sbom.json"
+            -v "$GITHUB_WORKSPACE:/work" -w /work \
+            node:${NODE_VERSION}-bullseye \
+            bash -lc "corepack enable && yarn install \
+            && curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh \
+            | sh -s -- -b /usr/local/bin && syft . -o cyclonedx-json=sbom.json"
 
       - name: Upload SBOM
         uses: actions/upload-artifact@v4
