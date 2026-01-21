@@ -32,6 +32,80 @@ jobs:
               yarn install
               yarn dlx -q @cyclonedx/yarn-plugin-cyclonedx --output-file bom_berry.json --output-format JSON '
 
+      - name: Upload BOM to Dependency-Track
+        env:
+          DTRACK_URL: http://192.168.122.1:8088
+          DTRACK_API_KEY: ${{ secrets.DTRACK_API_KEY }}
+        run: |
+          projectName="$GITHUB_REPOSITORY-berry"
+          checkVersion="${GITHUB_REF_NAME:-main}"
+          projectVersion="${GITHUB_SHA}"
+               
+      - name: Upload BOM to Dependency-Track and fetch metrics
+        env:
+          DTRACK_URL: http://192.168.122.1:8088
+          DTRACK_API_KEY: ${{ secrets.DTRACK_API_KEY }}
+        run: |
+          set -euo pipefail
+      
+          projectName="${GITHUB_REPOSITORY}-berry"
+          # If you want "one version per commit":
+          projectVersion="${GITHUB_SHA}"
+      
+          # 1) Upload BOM -> get token
+          token="$(
+            curl -sSf -X POST "$DTRACK_URL/api/v1/bom" \
+              -H "X-Api-Key: $DTRACK_API_KEY" \
+              -F "projectName=$projectName" \
+              -F "projectVersion=$projectVersion" \
+              -F "autoCreate=true" \
+              -F "bom=@bom.json" \
+            | jq -r '.token'
+          )"
+      
+          echo "Dependency-Track token: $token"
+      
+          # 2) Wait for Dependency-Track to finish processing/analysis
+          echo "Waiting for Dependency-Track to finish processing..."
+          for i in {1..120}; do
+            processing="$(curl -sSf "$DTRACK_URL/api/v1/bom/token/$token" -H "X-Api-Key: $DTRACK_API_KEY")"
+      
+            # This endpoint usually returns a boolean: true/false
+            if [ "$processing" = "false" ]; then
+              echo "Processing finished."
+              break
+            fi
+      
+            sleep 5
+          done
+      
+          # 3) Project lookup to obtain the UUID
+          # NOTE: lookup uses name + version (in this case: projectVersion = SHA)
+          project="$(curl -sSf \
+            "$DTRACK_URL/api/v1/project/lookup?name=$(python3 -c "import urllib.parse; print(urllib.parse.quote('''$projectName'''))")&version=$(python3 -c "import urllib.parse; print(urllib.parse.quote('''$projectVersion'''))")" \
+            -H "X-Api-Key: $DTRACK_API_KEY"
+          )"
+      
+          uuid="$(echo "$project" | jq -r '.uuid')"
+          echo "Project UUID: $uuid"
+      
+          # 4) Metrics (critical / high / medium / low, etc.)
+          metrics="$(curl -sSf "$DTRACK_URL/api/v1/metrics/project/$uuid/current" -H "X-Api-Key: $DTRACK_API_KEY")"
+      
+          echo "=== Metrics ==="
+          echo "$metrics" | jq '{critical, high, medium, low, unassigned, vulnerabilities, vulnerableComponents, components}'
+          # 5) Quality gate: fail the workflow if critical or high vulnerabilities are found
+          crit="$(echo "$metrics" | jq -r '.critical')"
+          high="$(echo "$metrics" | jq -r '.high')"
+          
+          if [ "$crit" -gt 0 ] || [ "$high" -gt 0 ]; then
+            echo "❌ Found critical/high vulnerabilities (critical=$crit, high=$high)"
+            exit 1
+          fi
+          
+          echo "✅ No critical or high vulnerabilities found"
+
+
       - name: Upload BOM
         uses: actions/upload-artifact@v4
         with:
