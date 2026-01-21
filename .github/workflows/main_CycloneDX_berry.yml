@@ -59,7 +59,7 @@ jobs:
               -F "projectName=$projectName" \
               -F "projectVersion=$projectVersion" \
               -F "autoCreate=true" \
-              -F "bom=@bom.json" \
+              -F "bom=@bom_berry.json" \
             | jq -r '.token'
           )"
       
