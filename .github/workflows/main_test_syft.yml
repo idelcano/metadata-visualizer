@@ -8,25 +8,16 @@ jobs:
     runs-on: bom
     steps:
       - uses: actions/checkout@v4
-
-      - name: Who am I
-        run: whoami
-
-      - name: Podman smoke
-        run: podman run --rm alpine echo OK
-
-      - name: Install syft (user space)
+      - name: Read node version
+        id: nodever
+        run: echo "NODE_VERSION=$(tr -d 'v' < .nvmrc)" >> "$GITHUB_ENV"
+        
+      - name: Yarn install + SBOM (container)
         run: |
-          mkdir -p "$HOME/bin"
-          curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh \
-            | sh -s -- -b "$HOME/bin"
-          echo "$HOME/bin" >> "$GITHUB_PATH"
-
-      - name: Syft version
-        run: syft version
-
-      - name: Generate SBOM (CycloneDX)
-        run: syft . -o cyclonedx-json=sbom.json
+          podman run --rm \
+          -v "$GITHUB_WORKSPACE:/work" -w /work \
+          node:${NODE_VERSION}-bullseye \
+          bash -lc "corepack enable && yarn install --frozen-lockfile && syft . -o cyclonedx-json=sbom.json"
 
       - name: Upload SBOM
         uses: actions/upload-artifact@v4
