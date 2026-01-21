@@ -17,7 +17,7 @@ jobs:
           podman run --rm \
           -v "$GITHUB_WORKSPACE:/work" -w /work \
           node:${NODE_VERSION}-bullseye \
-          bash -lc "corepack enable && yarn install --frozen-lockfile && syft . -o cyclonedx-json=sbom.json"
+          bash -lc "corepack enable && yarn install && syft . -o cyclonedx-json=sbom.json"
 
       - name: Upload SBOM
         uses: actions/upload-artifact@v4
