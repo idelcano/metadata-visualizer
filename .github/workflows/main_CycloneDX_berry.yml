@@ -1,0 +1,31 @@
+name: Runner Smoke + CycloneDX (Yarn Berry)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  sbom:
+    runs-on: bom
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Read node version (fallback 20)
+        run: |
+          if [ -f .nvmrc ]; then
+            echo "NODE_VERSION=$(tr -d 'v' < .nvmrc)" >> "$GITHUB_ENV"
+          else
+            echo "NODE_VERSION=20" >> "$GITHUB_ENV"
+          fi
+
+      - name: Yarn Berry + CycloneDX (container)
+        run: |
+          podman run --rm \
+            -v "$GITHUB_WORKSPACE:/work" -w /work \
+            node:${NODE_VERSION}-bullseye \
+            bash -lc "corepack enable && yarn set version berry && yarn install && yarn dlx -q @cyclonedx/yarn-plugin-cyclonedx --output-file bom_berry.json --output-format JSON"
+
+      - name: Upload BOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: bom
+          path: bom_berry.json

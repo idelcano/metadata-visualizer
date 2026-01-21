@@ -1,8 +1,0 @@
-name: runner-test
-on: [workflow_dispatch]
-
-jobs:
-  test:
-    runs-on: [self-hosted, linux, sbom]
-    steps:
-      - run: echo "Runner OK" && uname -a && id
