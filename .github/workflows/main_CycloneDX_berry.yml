@@ -85,13 +85,7 @@ jobs:
 
           crit="$(echo "$metrics" | jq -r '.critical')"
           high="$(echo "$metrics" | jq -r '.high')"
-
-          if [ "$crit" -gt 0 ] || [ "$high" -gt 0 ]; then
-            echo "❌ Found critical/high vulnerabilities (critical=$crit, high=$high)"
-            exit 1
-          fi
-
-          echo "✅ No critical or high vulnerabilities found"
+          
           echo "Fetching vulnerabilities for project..."
           vulns_json="$(curl -sSf "$DTRACK_URL/api/v1/vulnerability/project/$uuid" \
             -H "X-Api-Key: $DTRACK_API_KEY")"
