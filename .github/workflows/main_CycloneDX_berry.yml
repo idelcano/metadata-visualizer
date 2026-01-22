@@ -115,7 +115,7 @@ jobs:
                 -(.cvss)
               )
             | .[]
-            | "::" + .level + "::" + .severity + " " + .id
+            | "::" + (.level // "notice") + "::" + .severity + " " + .id
               + " (CVSS " + (.cvss | tostring) + ") "
               + .component
               + (if (.version|length)>0 then "@" + .version else "" end)
