@@ -41,7 +41,11 @@ jobs:
           test -f bom_berry.json || { echo "bom_berry.json not found"; ls -lah; exit 1; }
 
           projectName="${GITHUB_REPOSITORY}-berry"
-          projectVersion="${GITHUB_SHA}"
+          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
+            projectVersion="pr-${GITHUB_EVENT_PULL_REQUEST_NUMBER}"
+          else
+            projectVersion="${GITHUB_REF_NAME:-main}"
+          fi
 
           token="$(
             curl -sSf -X POST "$DTRACK_URL/api/v1/bom" \
