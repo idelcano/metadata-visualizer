@@ -115,7 +115,11 @@ jobs:
                 -(.cvss)
               )
             | .[]
-            | "::\(if .severity==\"CRITICAL\" or .severity==\"HIGH\" then \"error\" elif .severity==\"MEDIUM\" then \"warning\" else \"notice\" end)::\(.severity) \(.id) (CVSS \(.cvss)) \(.component)\(if (.version|length)>0 then \"@\" + .version else \"\" end) - \(.description)"
+            | "::" + .level + "::" + .severity + " " + .id
+              + " (CVSS " + (.cvss | tostring) + ") "
+              + .component
+              + (if (.version|length)>0 then "@" + .version else "" end)
+              + " - " + .description
           '
           # Always print what we are about to enforce
           crit="$(echo "$metrics" | jq -r '.critical // 0')"
