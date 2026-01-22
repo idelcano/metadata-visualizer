@@ -33,7 +33,7 @@ jobs:
 
       - name: Upload BOM to Dependency-Track and fetch metrics
         env:
-          DTRACK_URL: http://192.168.122.1:8088
+          DTRACK_URL: ${{ vars.DTRACK_URL }}
           DTRACK_API_KEY: ${{ secrets.DTRACK_API_KEY }}
         run: |
           set -euo pipefail
