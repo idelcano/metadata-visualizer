@@ -57,8 +57,8 @@ jobs:
           echo "Waiting for Dependency-Track to finish processing..."
           processing="true"
           for i in {1..120}; do
-            processing="$(curl -sSf "$DTRACK_URL/api/v1/bom/token/$token" -H "X-Api-Key: $DTRACK_API_KEY")"
-            if [ "$processing" = "false" ]; then
+              processing="$(curl -sSf "$DTRACK_URL/api/v1/bom/token/$token" -H "X-Api-Key: $DTRACK_API_KEY" | jq -r '.processing')"
+              if [ "$processing" = "false" ]; then
               echo "Processing finished."
               break
             fi
