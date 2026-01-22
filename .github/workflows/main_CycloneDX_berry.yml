@@ -115,7 +115,9 @@ jobs:
                 -(.cvss)
               )
             | .[]
-            | "::" + (.level // "notice") + "::" + .severity + " " + .id
+            | "::" + (if .severity=="CRITICAL" or .severity=="HIGH" then "error"
+                      elif .severity=="MEDIUM" then "warning"
+                      else "notice" end) + "::" + .severity + " " + .id
               + " (CVSS " + (.cvss | tostring) + ") "
               + .component
               + (if (.version|length)>0 then "@" + .version else "" end)
@@ -148,6 +150,7 @@ jobs:
 
       - name: Upload BOM
         uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: bom
           path: bom_berry.json
