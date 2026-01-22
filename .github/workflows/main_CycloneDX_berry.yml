@@ -93,40 +93,25 @@ jobs:
             -H "X-Api-Key: $DTRACK_API_KEY")"
           
           echo "Emitting GitHub Actions annotations..."
-
           echo "$vulns_json" | jq -r '
-            def severity_to_level(s):
-              if s=="CRITICAL" or s=="HIGH" then "error"
-              elif s=="MEDIUM" then "warning"
-              else "notice" end;
-          
-            def severity_weight(s):
-              if s=="CRITICAL" then 4
-              elif s=="HIGH" then 3
-              elif s=="MEDIUM" then 2
-              elif s=="LOW" then 1
-              else 0 end;
-          
             map({
               severity: (.severity // "UNASSIGNED"),
-              level: severity_to_level(.severity // "UNASSIGNED"),
-              weight: severity_weight(.severity // "UNASSIGNED"),
               id: (.vulnId // .vulnID // .source // "UNKNOWN"),
               cvss: ((.cvssV3BaseScore // .cvssV2BaseScore // 0) | tonumber),
               description: (.description // "" | gsub("[\r\n\t]+"; " ") | .[0:160]),
               components: (.components // [])
             })
-            | map(
-                if (.components | length) > 0
-                then .components[] as $c
-                     | . + {component: ($c.name // "unknown"), version: ($c.version // "")}
-                else . + {component: "unknown", version: ""}
-                end
+            | map(if (.components|length)>0 then .components[] as $c | . + {component: ($c.name//"unknown"), version: ($c.version//"")} else . + {component:"unknown", version:""} end)
+            | sort_by(
+                (if .severity=="CRITICAL" then 0
+                 elif .severity=="HIGH" then 1
+                 elif .severity=="MEDIUM" then 2
+                 elif .severity=="LOW" then 3
+                 else 4 end),
+                -(.cvss)
               )
-            | sort_by(-.weight, -(.cvss))
             | .[]
-            # Build the message safely (ASCII only)
-            | "::\(.level)::\(.severity) \(.id) (CVSS \(.cvss)) \(.component)\(if (.version|length)>0 then "@" + .version else "" end) - \(.description)"
+            | "::\(if .severity==\"CRITICAL\" or .severity==\"HIGH\" then \"error\" elif .severity==\"MEDIUM\" then \"warning\" else \"notice\" end)::\(.severity) \(.id) (CVSS \(.cvss)) \(.component)\(if (.version|length)>0 then \"@\" + .version else \"\" end) - \(.description)"
           '
           # Always print what we are about to enforce
           crit="$(echo "$metrics" | jq -r '.critical // 0')"
