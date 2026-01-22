@@ -69,11 +69,13 @@ jobs:
             echo "Timed out waiting for BOM processing"
             exit 1
           fi
+          
+          projectNameEnc=$(printf '%s' "$projectName" | jq -sRr @uri)
+          projectVersionEnc=$(printf '%s' "$projectVersion" | jq -sRr @uri)
 
           project="$(curl -sSf \
-            "$DTRACK_URL/api/v1/project/lookup?name=$(python3 -c "import urllib.parse; print(urllib.parse.quote('''$projectName'''))")&version=$(python3 -c "import urllib.parse; print(urllib.parse.quote('''$projectVersion'''))")" \
-            -H "X-Api-Key: $DTRACK_API_KEY"
-          )"
+          "$DTRACK_URL/api/v1/project/lookup?name=${projectNameEnc}&version=${projectVersionEnc}" \
+          -H "X-Api-Key: $DTRACK_API_KEY")"
 
           uuid="$(echo "$project" | jq -r '.uuid')"
           echo "Project UUID: $uuid"
