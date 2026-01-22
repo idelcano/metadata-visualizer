@@ -42,6 +42,13 @@ jobs:
 
           projectName="${GITHUB_REPOSITORY}-berry"
           projectVersion="${GITHUB_SHA}"
+          
+          echo "=== BOM size ==="
+          ls -lah bom_berry.json || true
+          wc -c bom_berry.json || true
+          echo "First/last lines (sanity):"
+          head -n 2 bom_berry.json || true
+          tail -n 2 bom_berry.json || true
 
           token="$(
             curl -sSf -X POST "$DTRACK_URL/api/v1/bom" \
@@ -52,7 +59,23 @@ jobs:
               -F "bom=@bom_berry.json" \
             | jq -r '.token'
           )"
-
+          set +e
+          resp="$(mktemp)"
+          curl -sS -D /tmp/headers.txt -o "$resp" -w "%{http_code}" \
+            -X POST "$DTRACK_URL/api/v1/bom" \
+            -H "X-Api-Key: $DTRACK_API_KEY" \
+            -F "projectName=$projectName" \
+            -F "projectVersion=$projectVersion" \
+            -F "autoCreate=true" \
+            -F "bom=@bom_berry.json"
+          code="$?"
+          echo "curl exit code: $code"
+          echo "=== response headers ==="
+          cat /tmp/headers.txt || true
+          echo "=== response body ==="
+          head -c 2000 "$resp" || true
+          exit 1
+          echo "End test"
           echo "Dependency-Track token: $token"
 
           echo "Waiting for Dependency-Track to finish processing..."
