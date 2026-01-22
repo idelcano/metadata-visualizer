@@ -8,20 +8,107 @@ jobs:
     runs-on: bom
     steps:
       - uses: actions/checkout@v4
-      - name: Read node version
-        id: nodever
-        run: echo "NODE_VERSION=$(tr -d 'v' < .nvmrc)" >> "$GITHUB_ENV"
-        
+
+      - name: Read node version (fallback 20)
+        run: |
+          if [ -f .nvmrc ]; then
+            echo "NODE_VERSION=$(tr -d 'v' < .nvmrc)" >> "$GITHUB_ENV"
+          else
+            echo "NODE_VERSION=20" >> "$GITHUB_ENV"
+          fi
+
       - name: Yarn install + SBOM (container)
         run: |
           podman run --rm \
             -v "$GITHUB_WORKSPACE:/work" -w /work \
             node:${NODE_VERSION}-bullseye \
-            bash -lc "corepack enable && yarn install \
-            && curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh \
-            | sh -s -- -b /usr/local/bin && syft . -o cyclonedx-json=sbom.json"
+            bash -lc '
+              set -e
+              corepack enable
+              yarn install
 
-      - name: Upload SBOM
+              # Install syft in the container
+              curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh \
+                | sh -s -- -b /usr/local/bin
+
+              # Generate CycloneDX JSON SBOM
+              syft . -o cyclonedx-json=sbom.json
+            '
+
+      - name: Upload SBOM to Dependency-Track and fetch metrics
+        env:
+          DTRACK_URL: http://192.168.122.1:8088
+          DTRACK_API_KEY: ${{ secrets.DTRACK_API_KEY }}
+        run: |
+          set -euo pipefail
+
+          test -f sbom.json || { echo "sbom.json not found"; ls -lah; exit 1; }
+
+          projectName="${GITHUB_REPOSITORY}-syft"
+          projectVersion="${GITHUB_SHA}"
+
+          # 1) Upload BOM -> get token
+          token="$(
+            curl -sSf -X POST "$DTRACK_URL/api/v1/bom" \
+              -H "X-Api-Key: $DTRACK_API_KEY" \
+              -F "projectName=$projectName" \
+              -F "projectVersion=$projectVersion" \
+              -F "autoCreate=true" \
+              -F "bom=@sbom.json" \
+            | jq -r '.token'
+          )"
+
+          echo "Dependency-Track token: $token"
+
+          # 2) Wait for Dependency-Track to finish processing
+          echo "Waiting for Dependency-Track to finish processing..."
+          processing="true"
+          for i in {1..120}; do
+            processing="$(curl -sSf "$DTRACK_URL/api/v1/bom/token/$token" -H "X-Api-Key: $DTRACK_API_KEY")"
+            if [ "$processing" = "false" ]; then
+              echo "Processing finished."
+              break
+            fi
+            sleep 5
+          done
+
+          if [ "$processing" != "false" ]; then
+            echo "Timed out waiting for BOM processing"
+            exit 1
+          fi
+
+          # (Optional) small buffer to allow vuln analysis to catch up
+          sleep 5
+
+          # 3) Project lookup to obtain the UUID (use curl's built-in URL encoding)
+          project="$(
+            curl -sSfG "$DTRACK_URL/api/v1/project/lookup" \
+              -H "X-Api-Key: $DTRACK_API_KEY" \
+              --data-urlencode "name=$projectName" \
+              --data-urlencode "version=$projectVersion"
+          )"
+
+          uuid="$(echo "$project" | jq -r '.uuid')"
+          echo "Project UUID: $uuid"
+
+          # 4) Metrics
+          metrics="$(curl -sSf "$DTRACK_URL/api/v1/metrics/project/$uuid/current" -H "X-Api-Key: $DTRACK_API_KEY")"
+
+          echo "=== Metrics ==="
+          echo "$metrics" | jq '{critical, high, medium, low, unassigned, vulnerabilities, vulnerableComponents, components}'
+
+          # 5) Quality gate
+          crit="$(echo "$metrics" | jq -r '.critical')"
+          high="$(echo "$metrics" | jq -r '.high')"
+
+          if [ "$crit" -gt 0 ] || [ "$high" -gt 0 ]; then
+            echo "❌ Found critical/high vulnerabilities (critical=$crit, high=$high)"
+            exit 1
+          fi
+
+          echo "✅ No critical or high vulnerabilities found"
+
+      - name: Upload SBOM artifact
         uses: actions/upload-artifact@v4
         with:
           name: sbom
