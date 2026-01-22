@@ -92,6 +92,63 @@ jobs:
           fi
 
           echo "✅ No critical or high vulnerabilities found"
+          echo "Fetching vulnerabilities for project..."
+          vulns_json="$(curl -sSf "$DTRACK_URL/api/v1/vulnerability/project/$uuid" \
+            -H "X-Api-Key: $DTRACK_API_KEY")"
+          
+          echo "Emitting GitHub Actions annotations..."
+          
+          # Emit annotations so they appear like failed tests in the Actions UI
+          echo "$vulns_json" | jq -r '
+            # Map severity to GitHub annotation level
+            def severity_to_level(s):
+              if s=="CRITICAL" or s=="HIGH" then "error"
+              elif s=="MEDIUM" then "warning"
+              else "notice" end;
+          
+            # Severity weight for sorting
+            def severity_weight(s):
+              if s=="CRITICAL" then 4
+              elif s=="HIGH" then 3
+              elif s=="MEDIUM" then 2
+              elif s=="LOW" then 1
+              else 0 end;
+          
+            map({
+              severity: (.severity // "UNASSIGNED"),
+              level: severity_to_level(.severity // "UNASSIGNED"),
+              weight: severity_weight(.severity // "UNASSIGNED"),
+              id: (.vulnId // .vulnID // .source // "UNKNOWN"),
+              cvss: ((.cvssV3BaseScore // .cvssV2BaseScore // 0) | tonumber),
+              description: (.description // "" | gsub("[\r\n\t]+"; " ") | .[0:160]),
+              components: (.components // [])
+            })
+            # Expand one entry per affected component
+            | map(
+                if (.components | length) > 0
+                then .components[] as $c
+                     | . + {component: ($c.name // "unknown"), version: ($c.version // "")}
+                else . + {component: "unknown", version: ""}
+                end
+              )
+            # Sort by severity first, then CVSS score
+            | sort_by(-.weight, -(.cvss))
+            | .[]
+            # Emit GitHub Actions annotation
+            | "::\(.level)::\(.severity) \(.id) (CVSS \(.cvss)) \(.component)\(if .version != \"\" then \"@\" + .version else \"\" end) – \(.description)"
+          '
+          
+          # Fail the job if critical or high vulnerabilities exist
+          crit="$(echo "$metrics" | jq -r '.critical')"
+          high="$(echo "$metrics" | jq -r '.high')"
+          
+          if [ "$crit" -gt 0 ] || [ "$high" -gt 0 ]; then
+            echo "::error::Found critical/high vulnerabilities (critical=$crit, high=$high)"
+            exit 1
+          fi
+          
+          echo "No critical or high vulnerabilities found."
+
 
       - name: Upload BOM
         uses: actions/upload-artifact@v4
