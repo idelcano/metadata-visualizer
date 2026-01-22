@@ -126,6 +126,29 @@ jobs:
             # Build the message safely (ASCII only)
             | "::\(.level)::\(.severity) \(.id) (CVSS \(.cvss)) \(.component)\(if (.version|length)>0 then "@" + .version else "" end) - \(.description)"
           '
+          # Always print what we are about to enforce
+          crit="$(echo "$metrics" | jq -r '.critical // 0')"
+          high="$(echo "$metrics" | jq -r '.high // 0')"
+          
+          # Trim possible whitespace
+          crit="$(echo "$crit" | tr -d '\r\n ' )"
+          high="$(echo "$high" | tr -d '\r\n ' )"
+          
+          echo "Final gate values: critical=[$crit] high=[$high]"
+          
+          # Ensure they are numeric, otherwise fail loud (so you notice immediately)
+          if ! [[ "$crit" =~ ^[0-9]+$ ]] || ! [[ "$high" =~ ^[0-9]+$ ]]; then
+            echo "::error::Invalid metrics values: critical=[$crit], high=[$high]"
+            exit 1
+          fi
+          
+          if [ "$crit" -gt 0 ] || [ "$high" -gt 0 ]; then
+            echo "::error::Found critical/high vulnerabilities (critical=$crit, high=$high)"
+            exit 1
+          fi
+          
+          echo "No critical or high vulnerabilities found"
+
 
 
       - name: Upload BOM
