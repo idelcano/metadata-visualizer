@@ -146,7 +146,9 @@ export const MetadataGraphView3D: React.FC<MetadataGraphView3DProps> = ({
                 linkDirectionalParticles={2}
                 linkDirectionalParticleSpeed={0.006}
                 enableNodeDrag={false}
-                nodeThreeObject={useTexture ? (node: ForceNode) => nodeThreeObject(node) : undefined}
+                nodeThreeObject={
+                    useTexture ? (node: ForceNode) => nodeThreeObject(node) : undefined
+                }
                 onNodeClick={node => handleFocus(node as ForceNode)}
                 onNodeRightClick={node => handleOpenApi(node as ForceNode)}
             />
@@ -205,7 +207,7 @@ function buildTimelineLayout(
     const bandSpacing = 140;
     const nodeSpacing = 48;
 
-    const placeBand = (group: typeof graph.groups[number], x: number, z: number) => {
+    const placeBand = (group: (typeof graph.groups)[number], x: number, z: number) => {
         const nodes = group.nodeKeys
             .map(key => nodeByKey.get(key))
             .filter((node): node is GraphNode => Boolean(node));
