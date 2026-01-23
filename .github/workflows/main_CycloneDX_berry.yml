@@ -39,14 +39,15 @@ jobs:
         env:
           DTRACK_URL: ${{ vars.DTRACK_URL }}
           DTRACK_API_KEY: ${{ secrets.DTRACK_API_KEY }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
 
           test -f bom_berry.json || { echo "bom_berry.json not found"; ls -lah; exit 1; }
 
           projectName="${GITHUB_REPOSITORY}-berry"
-          if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
-            projectVersion="pr-${GITHUB_EVENT_PULL_REQUEST_NUMBER}"
+          if [ -n "${PR_NUMBER:-}" ]; then
+            projectVersion="pr-${PR_NUMBER}"
           else
             projectVersion="${GITHUB_REF_NAME:-main}"
           fi
