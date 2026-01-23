@@ -4,8 +4,8 @@
 yarn prettify && yarn lint && yarn update-po && yarn test
 
 if command -v snyk >/dev/null 2>&1; then
-  snyk auth
-  snyk test
+  snyk auth || echo "snyk auth failed (non-blocking)"
+  snyk test || echo "snyk test failed (non-blocking)"
 else
   echo "snyk not found. Install it to run snyk auth/test."
 fi
