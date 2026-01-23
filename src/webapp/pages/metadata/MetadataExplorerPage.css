@@ -383,10 +383,32 @@
     overflow: hidden;
     background: #0f172a;
     border: 1px solid #0f172a;
+    position: relative;
 }
 
 .metadata-graph__view3d canvas {
     border-radius: 8px;
+}
+
+.metadata-graph__controls {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    z-index: 1;
+}
+
+.metadata-graph__control-button {
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.6);
+    color: #e2e8f0;
+    font-size: 12px;
+    padding: 6px 12px;
+    cursor: pointer;
+}
+
+.metadata-graph__control-button:hover {
+    background: rgba(30, 41, 59, 0.75);
 }
 
 .metadata-graph__hint {

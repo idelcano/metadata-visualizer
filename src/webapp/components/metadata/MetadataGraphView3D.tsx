@@ -5,7 +5,9 @@ import ForceGraph3D, {
     LinkObject,
     NodeObject,
 } from "react-force-graph-3d";
+import * as THREE from "three";
 import { GraphEdge, GraphNode, MetadataGraph } from "$/domain/metadata/MetadataGraph";
+import { buildIdenticonSvg, identiconSeed, sha256Hex } from "$/domain/metadata/Identicon";
 import { resourceTypeLabels } from "$/domain/metadata/ResourceType";
 
 type ForceNode = NodeObject & {
@@ -32,6 +34,11 @@ type MetadataGraphView3DProps = {
     layoutMode?: "radial" | "timeline";
 };
 
+const textureLoader = new THREE.TextureLoader();
+const textureCache = new Map<string, THREE.Texture>();
+const texturePromises = new Map<string, Promise<THREE.Texture>>();
+const geometryCache = new Map<number, THREE.BoxGeometry>();
+
 export const MetadataGraphView3D: React.FC<MetadataGraphView3DProps> = ({
     graph,
     onOpenApi,
@@ -41,6 +48,25 @@ export const MetadataGraphView3D: React.FC<MetadataGraphView3DProps> = ({
     const graphRef = React.useRef<ForceGraphMethods<ForceNode, ForceLink>>();
     const containerRef = React.useRef<HTMLDivElement | null>(null);
     const [size, setSize] = React.useState({ width: 0, height: 420 });
+    const [useTexture, setUseTexture] = React.useState(true);
+
+    const nodeThreeObject = React.useCallback((node: ForceNode) => {
+        const cubeSize = Math.max(6, node.val * 1.2);
+        const geometry = getCubeGeometry(cubeSize);
+        const material = new THREE.MeshLambertMaterial({ color: "#64748b" });
+        const mesh = new THREE.Mesh(geometry, material);
+
+        getNodeTexture(node)
+            .then(texture => {
+                material.map = texture;
+                material.needsUpdate = true;
+            })
+            .catch(() => {
+                // Keep fallback color if texture fails.
+            });
+
+        return mesh;
+    }, []);
 
     const forceData = React.useMemo(() => {
         const layout = layoutMode === "timeline" ? buildTimelineLayout(graph) : undefined;
@@ -99,7 +125,7 @@ export const MetadataGraphView3D: React.FC<MetadataGraphView3DProps> = ({
     return (
         <div className="metadata-graph__view3d" ref={containerRef}>
             <ForceGraph3D
-                key={layoutMode}
+                key={`${layoutMode}-${useTexture ? "texture" : "color"}`}
                 ref={graphRef}
                 graphData={forceData}
                 width={size.width}
@@ -109,7 +135,7 @@ export const MetadataGraphView3D: React.FC<MetadataGraphView3DProps> = ({
                 linkTarget="target"
                 nodeLabel={node => `${resourceTypeLabels[node.type] ?? node.type}: ${node.name}`}
                 linkLabel={link => link.label}
-                nodeAutoColorBy="type"
+                nodeAutoColorBy={useTexture ? undefined : "type"}
                 backgroundColor="#0f172a"
                 showNavInfo={false}
                 dagMode={layoutMode === "radial" ? "radialout" : undefined}
@@ -120,9 +146,20 @@ export const MetadataGraphView3D: React.FC<MetadataGraphView3DProps> = ({
                 linkDirectionalParticles={2}
                 linkDirectionalParticleSpeed={0.006}
                 enableNodeDrag={false}
+                nodeThreeObject={useTexture ? (node: ForceNode) => nodeThreeObject(node) : undefined}
                 onNodeClick={node => handleFocus(node as ForceNode)}
                 onNodeRightClick={node => handleOpenApi(node as ForceNode)}
             />
+
+            <div className="metadata-graph__controls">
+                <button
+                    type="button"
+                    className="metadata-graph__control-button"
+                    onClick={() => setUseTexture(value => !value)}
+                >
+                    {useTexture ? "Colores" : "Texturas"}
+                </button>
+            </div>
 
             <div className="metadata-graph__hint">
                 Click para enfocar - Boton derecho abre la API
@@ -223,4 +260,57 @@ function orientEdge(edge: GraphEdge, centerKey: string) {
         return { source: centerKey, target: edge.from };
     }
     return { source: edge.from, target: edge.to };
+}
+
+function getCubeGeometry(size: number): THREE.BoxGeometry {
+    const cached = geometryCache.get(size);
+    if (cached) return cached;
+    const geometry = new THREE.BoxGeometry(size, size, size);
+    geometryCache.set(size, geometry);
+    return geometry;
+}
+
+function getNodeTexture(node: ForceNode): Promise<THREE.Texture> {
+    const key = node.id;
+    const cached = textureCache.get(key);
+    if (cached) return Promise.resolve(cached);
+
+    const inFlight = texturePromises.get(key);
+    if (inFlight) return inFlight;
+
+    const promise = sha256Hex(identiconSeed(node.type, node.raw.id))
+        .then(hash => buildIdenticonSvg(hash, 64).svg)
+        .then(svg => loadSvgTexture(svg))
+        .then(texture => {
+            textureCache.set(key, texture);
+            return texture;
+        })
+        .finally(() => {
+            texturePromises.delete(key);
+        });
+
+    texturePromises.set(key, promise);
+    return promise;
+}
+
+function loadSvgTexture(svg: string): Promise<THREE.Texture> {
+    const url = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+    return new Promise((resolve, reject) => {
+        textureLoader.load(
+            url,
+            (texture: THREE.Texture) => {
+                const srgb = (THREE as typeof THREE & { SRGBColorSpace?: string }).SRGBColorSpace;
+                if (srgb) {
+                    texture.colorSpace = srgb;
+                } else if ((THREE as typeof THREE & { sRGBEncoding?: number }).sRGBEncoding) {
+                    (texture as THREE.Texture & { encoding?: number }).encoding = (
+                        THREE as typeof THREE & { sRGBEncoding?: number }
+                    ).sRGBEncoding;
+                }
+                resolve(texture);
+            },
+            undefined,
+            (error: unknown) => reject(error)
+        );
+    });
 }
