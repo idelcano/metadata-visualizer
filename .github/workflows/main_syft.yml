@@ -2,6 +2,10 @@ name: Runner Smoke + Syft SBOM 2
 
 on:
   workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
 
 jobs:
   smoke:
