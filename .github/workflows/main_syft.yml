@@ -48,7 +48,7 @@ jobs:
 
           test -f bom_syft.json || { echo "bom_syft.json not found"; ls -lah; exit 1; }
 
-          projectName="${GITHUB_REPOSITORY}-syft
+          projectName="${GITHUB_REPOSITORY}-syft"
           
           if [ "${GITHUB_EVENT_NAME}" = "pull_request" ]; then
             projectVersion="pr-${GITHUB_EVENT_PULL_REQUEST_NUMBER}"
