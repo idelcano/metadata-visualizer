@@ -11,6 +11,7 @@ if command -v snyk >/dev/null 2>&1; then
     snyk auth || echo "snyk auth failed (non-blocking)"
     snyk test || echo "snyk test failed (non-blocking)"
   fi
+  echo "Tip: you can generate an HTML report with: snyk test --all-projects --dev --json-file-output=snyk.json || true && snyk-to-html -i snyk.json -o snyk-report.html -s (install snyk-to-html)"
 else
   echo "snyk not found. Install it to run snyk auth/test."
 fi
