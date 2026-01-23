@@ -9,6 +9,7 @@ import * as THREE from "three";
 import { GraphEdge, GraphNode, MetadataGraph } from "$/domain/metadata/MetadataGraph";
 import { buildIdenticonSvg, identiconSeed, sha256Hex } from "$/domain/metadata/Identicon";
 import { resourceTypeLabels } from "$/domain/metadata/ResourceType";
+import i18n from "$/utils/i18n";
 
 type ForceNode = NodeObject & {
     id: string;
@@ -159,12 +160,12 @@ export const MetadataGraphView3D: React.FC<MetadataGraphView3DProps> = ({
                     className="metadata-graph__control-button"
                     onClick={() => setUseTexture(value => !value)}
                 >
-                    {useTexture ? "Colores" : "Texturas"}
+                    {useTexture ? i18n.t("Colors") : i18n.t("Textures")}
                 </button>
             </div>
 
             <div className="metadata-graph__hint">
-                Click para enfocar - Boton derecho abre la API
+                {i18n.t("Click to focus - Right click opens the API")}
             </div>
         </div>
     );

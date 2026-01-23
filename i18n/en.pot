@@ -28,3 +28,12 @@ msgstr ""
 
 msgid "Section"
 msgstr ""
+
+msgid "Colors"
+msgstr ""
+
+msgid "Textures"
+msgstr ""
+
+msgid "Click to focus - Right click opens the API"
+msgstr ""
